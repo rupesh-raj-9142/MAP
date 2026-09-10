@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TripStatus {
+  DRAFT
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum StopStatus {
+  PENDING
+  CURRENT
+  COMPLETED
+  SKIPPED
+  REPLACED
+}
+
+model User {
+  id           String          @id @default(uuid())
+  name         String
+  email        String          @unique
+  passwordHash String
+  image        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  preference   UserPreference?
+  trips        Trip[]
+  savedPlaces  SavedPlace[]
+
+  @@index([email])
+}
+
+model UserPreference {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  interests           String[] @default([])
+  budgetPreference    String?
+  travelStyle         String?
+  transportPreference String?
+  favoriteCategories  String[] @default([])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Place {
+  id                  String       @id @default(uuid())
+  externalId          String?      @unique
+  name                String
+  description         String
+  category            String
+  latitude            Float
+  longitude           Float
+  address             String
+  rating              Float        @default(4.0)
+  reviewCount         Int          @default(0)
+  phoneNumber         String?
+  website             String?
+  openingHours        String?
+  priceLevel          String?
+  entryFee            Float        @default(0)
+  recommendedDuration Int          @default(60)
+  photos              String[]     @default([])
+  source              String       @default("SYSTEM")
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  tripStops           TripStop[]
+  savedPlaces         SavedPlace[]
+
+  @@index([externalId])
+  @@index([category])
+}
+
+model Trip {
+  id                  String       @id @default(uuid())
+  userId              String
+  title               String
+  locationName        String
+  latitude            Float
+  longitude           Float
+  durationMinutes     Int
+  budget              Float
+  travelMood          String?
+  travelGroup         String?
+  transportPreference String?
+  status              TripStatus   @default(PLANNED)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stops               TripStop[]
+  itinerary           Itinerary?
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model TripStop {
+  id                   String     @id @default(uuid())
+  tripId               String
+  placeId              String
+  order                Int
+  startTime            String?
+  durationMinutes      Int
+  travelTimeMinutes    Int        @default(0)
+  travelDistanceMeters Int        @default(0)
+  estimatedCost        Float      @default(0)
+  notes                String?
+  status               StopStatus @default(PENDING)
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  trip                 Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  place                Place      @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+}
+
+model Itinerary {
+  id                   String   @id @default(uuid())
+  tripId               String   @unique
+  totalDurationMinutes Int
+  totalDistanceMeters  Int
+  estimatedTotalCost   Float
+  reasoningSummary     String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  trip                 Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+model SavedPlace {
+  id        String   @id @default(uuid())
+  userId    String
+  placeId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placeId])
+  @@index([userId])
+}

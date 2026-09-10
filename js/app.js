@@ -1,7 +1,110 @@
 /**
  * YATRA - Main Application Controller
- * Handles routing, view transitions, user interactions, modals, and data binding
+ * Handles routing, view transitions, user interactions, modals, and backend API integration
  */
+
+// Centralized Backend API Client
+const YatraApi = {
+  baseUrl: '/api',
+  getToken() {
+    return localStorage.getItem('yatra_auth_token') || '';
+  },
+  setToken(token) {
+    if (token) localStorage.setItem('yatra_auth_token', token);
+    else localStorage.removeItem('yatra_auth_token');
+  },
+  async request(endpoint, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    const token = this.getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(`${this.baseUrl}${endpoint}`, { ...options, headers });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error?.message || `Request failed with ${res.status}`);
+      }
+      return json.data;
+    } catch (err) {
+      console.warn(`[YatraApi] ${endpoint} notice:`, err.message);
+      throw err;
+    }
+  },
+  async register(name, email, password) {
+    const data = await this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password })
+    });
+    if (data?.token) this.setToken(data.token);
+    return data;
+  },
+  async login(email, password) {
+    const data = await this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+    if (data?.token) this.setToken(data.token);
+    return data;
+  },
+  async getMe() {
+    return this.request('/auth/me');
+  },
+  async getNearbyPlaces(lat, lng, radius = 10000, category = 'all') {
+    let q = `/places/nearby?latitude=${lat}&longitude=${lng}&radius=${radius}`;
+    if (category && category !== 'all') q += `&category=${encodeURIComponent(category)}`;
+    return this.request(q);
+  },
+  async searchPlaces(query, city) {
+    let q = `/search?q=${encodeURIComponent(query)}`;
+    if (city) q += `&city=${encodeURIComponent(city)}`;
+    return this.request(q);
+  },
+  async getPlaceDetails(id) {
+    return this.request(`/places/${id}`);
+  },
+  async planTrip(params) {
+    return this.request('/ai/plan-trip', {
+      method: 'POST',
+      body: JSON.stringify(params)
+    });
+  },
+  async createTrip(tripData) {
+    return this.request('/trips', {
+      method: 'POST',
+      body: JSON.stringify(tripData)
+    });
+  },
+  async getTrips() {
+    return this.request('/trips');
+  },
+  async deleteTrip(tripId) {
+    return this.request(`/trips/${tripId}`, { method: 'DELETE' });
+  },
+  async replaceStop(tripId, stopId, newPlaceId) {
+    return this.request(`/trips/${tripId}/stops/${stopId}/replace`, {
+      method: 'POST',
+      body: JSON.stringify({ newPlaceId })
+    });
+  },
+  async recalculateTrip(tripId, params) {
+    return this.request(`/trips/${tripId}/recalculate`, {
+      method: 'POST',
+      body: JSON.stringify(params)
+    });
+  },
+  async savePlace(placeId) {
+    return this.request('/saved-places', {
+      method: 'POST',
+      body: JSON.stringify({ placeId })
+    });
+  },
+  async getSavedPlaces() {
+    return this.request('/saved-places');
+  },
+  async removeSavedPlace(placeId) {
+    return this.request(`/saved-places/${placeId}`, { method: 'DELETE' });
+  }
+};
 
 const YatraApp = (function() {
   // Application State
@@ -14,6 +117,7 @@ const YatraApp = (function() {
     currentItinerary: null,
     savedTrips: [],
     favorites: [],
+    currentUser: null,
     plannerForm: {
       cityId: 'patna',
       duration: 'half-day',
@@ -29,7 +133,7 @@ const YatraApp = (function() {
   /**
    * Initialize Application
    */
-  function init() {
+  async function init() {
     loadSavedState();
 
     // Default to first curated trip
@@ -37,11 +141,25 @@ const YatraApp = (function() {
 
     setupEventListeners();
     setupRouting();
-    renderExploreList();
+    await checkCurrentUser();
+    await renderExploreList();
 
     // Initial view based on URL hash or default to home
     const hash = window.location.hash.replace('#', '') || 'home';
     switchView(hash);
+  }
+
+  async function checkCurrentUser() {
+    if (YatraApi.getToken()) {
+      try {
+        const data = await YatraApi.getMe();
+        if (data?.user) {
+          state.currentUser = data.user;
+        }
+      } catch {
+        // Token expired or offline
+      }
+    }
   }
 
   /**
@@ -277,23 +395,62 @@ const YatraApp = (function() {
   /**
    * Render Explore List Places
    */
-  function renderExploreList() {
+  async function renderExploreList() {
     const listContainer = document.getElementById('explore-places-list');
     if (!listContainer) return;
 
     let places = YATRA_PLACES.filter(p => p.cityId === state.activeCityId);
+
+    // Fetch live nearby places from backend
+    const cityCoord = YATRA_CITIES[state.activeCityId]?.coordinates || [25.5941, 85.1376];
+    try {
+      if (state.searchQuery) {
+        const searchRes = await YatraApi.searchPlaces(state.searchQuery, YATRA_CITIES[state.activeCityId]?.name);
+        if (searchRes?.results && searchRes.results.length > 0) {
+          places = searchRes.results.map(p => ({
+            ...p,
+            image: p.photos?.[0] || 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80',
+            badge: p.badge || `${p.category.toUpperCase()} Landmark`,
+            entryFee: p.entryFee || 0,
+            dwellTimeMin: p.recommendedDuration || 45,
+            lat: p.latitude,
+            lng: p.longitude
+          }));
+        }
+      } else {
+        const nearbyRes = await YatraApi.getNearbyPlaces(
+          cityCoord[0],
+          cityCoord[1],
+          state.selectedRadius * 1000,
+          state.selectedCategory
+        );
+        if (nearbyRes?.places && nearbyRes.places.length > 0) {
+          places = nearbyRes.places.map(p => ({
+            ...p,
+            image: p.photos?.[0] || 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80',
+            badge: p.badge || `${p.category.toUpperCase()} Highlight`,
+            entryFee: p.entryFee || 0,
+            dwellTimeMin: p.recommendedDuration || 45,
+            lat: p.latitude,
+            lng: p.longitude
+          }));
+        }
+      }
+    } catch {
+      // Offline fallback already loaded in places variable
+    }
 
     // Filter by category
     if (state.selectedCategory !== 'all') {
       places = places.filter(p => p.category === state.selectedCategory);
     }
 
-    // Filter by search query
+    // Filter by search query if offline
     if (state.searchQuery) {
       places = places.filter(p => 
         p.name.toLowerCase().includes(state.searchQuery) ||
         p.description.toLowerCase().includes(state.searchQuery) ||
-        p.badge.toLowerCase().includes(state.searchQuery)
+        (p.badge && p.badge.toLowerCase().includes(state.searchQuery))
       );
     }
 
@@ -339,64 +496,58 @@ const YatraApp = (function() {
           </button>
         </div>
 
-        <div class="flex flex-col flex-1 justify-between min-w-0">
+        <div class="flex-1 flex flex-col justify-between">
           <div>
-            <div class="flex items-start justify-between gap-space-xs">
-              <div>
-                <span class="inline-block px-2 py-0.5 bg-surface-container text-primary text-xs rounded uppercase tracking-wider font-semibold">
-                  ${place.badge}
-                </span>
-                <h3 class="font-bold text-lg text-on-surface mt-1 truncate">${place.name}</h3>
-              </div>
-              <div class="flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded text-secondary text-xs font-bold shrink-0">
-                <span class="material-symbols-outlined text-[16px] text-amber-500 fill-1">star</span>
-                <span class="text-on-surface">${place.rating}</span>
-                <span class="text-on-surface-variant font-normal">(${place.reviewsCount})</span>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-bold text-primary uppercase tracking-wider">${place.badge || place.category}</span>
+              <div class="flex items-center gap-1 text-xs font-bold text-on-surface">
+                <span class="material-symbols-outlined text-amber-500 text-[16px]">star</span>
+                <span>${place.rating}</span>
+                <span class="text-on-surface-variant font-normal">(${place.reviewsCount || place.reviewCount || 100})</span>
               </div>
             </div>
 
-            <p class="text-sm text-on-surface-variant line-clamp-2 mt-2 leading-relaxed">
+            <h3 class="font-display font-bold text-lg text-on-surface mt-1 group-hover:text-primary transition-colors">
+              ${place.name}
+            </h3>
+
+            <p class="text-xs text-on-surface-variant mt-1.5 line-clamp-2 leading-relaxed">
               ${place.description}
             </p>
 
-            <!-- Metadata Metrics Strip -->
-            <div class="flex flex-wrap items-center gap-y-1 gap-x-space-md text-on-surface-variant mt-3 text-xs">
-              <div class="flex items-center gap-1">
+            <div class="flex items-center gap-4 mt-3 text-xs text-on-surface-variant">
+              <span class="flex items-center gap-1">
                 <span class="material-symbols-outlined text-[16px] text-primary">schedule</span>
-                <span>${place.dwellTimeMin}m avg visit</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <span class="material-symbols-outlined text-[16px] text-emerald-600">payments</span>
-                <span class="font-semibold text-on-surface">
-                  ${place.entryFee === 0 ? 'Free Entry' : '₹' + place.entryFee}
-                </span>
-              </div>
-              <div class="flex items-center gap-1">
-                <span class="material-symbols-outlined text-[16px] text-secondary">groups</span>
-                <span>${place.crowdToday}</span>
-              </div>
+                <span>${place.dwellTimeMin || place.recommendedDuration || 45} mins</span>
+              </span>
+              <span class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px] text-primary">payments</span>
+                <span>${place.entryFee === 0 ? 'Free Entry' : '₹' + place.entryFee}</span>
+              </span>
+              <span class="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>${place.openStatus || place.openingHours || 'Open Today'}</span>
+              </span>
             </div>
           </div>
 
-          <!-- Card Actions -->
-          <div class="flex items-center justify-between mt-4 pt-3 border-t border-surface-container">
-            <span class="text-xs text-on-surface-variant flex items-center gap-1">
-              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              ${place.openStatus.split('(')[0]}
-            </span>
+          <div class="flex items-center justify-between pt-3 mt-3 border-t border-surface-container">
+            <div class="text-[11px] text-on-surface-variant flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[15px] text-primary">groups</span>
+              <span>Crowd: <strong class="text-on-surface">${place.crowdToday || 'Moderate'}</strong></span>
+            </div>
             <div class="flex items-center gap-2">
               <button 
                 onclick="YatraApp.openPlaceModal('${place.id}')" 
-                class="px-3 py-1.5 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high text-xs font-semibold transition-colors"
+                class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-xs font-semibold text-on-surface transition-colors"
               >
-                Place Details
+                Inspect
               </button>
               <button 
                 onclick="YatraApp.addPlaceToItinerary('${place.id}')" 
-                class="px-3 py-1.5 rounded-lg bg-primary text-on-primary hover:bg-primary-hover text-xs font-semibold flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                class="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm active:scale-95"
               >
-                <span class="material-symbols-outlined text-[15px]">add_circle</span>
-                <span>Add to Yatra</span>
+                + Add to Yatra
               </button>
             </div>
           </div>
@@ -406,45 +557,69 @@ const YatraApp = (function() {
   }
 
   function highlightPlaceCard(placeId) {
-    document.querySelectorAll('#explore-places-list article').forEach(el => {
-      el.classList.remove('ring-2', 'ring-primary');
-    });
     const card = document.getElementById(`card-${placeId}`);
     if (card) {
-      card.classList.add('ring-2', 'ring-primary');
       card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      card.classList.add('ring-2', 'ring-primary');
+      setTimeout(() => card.classList.remove('ring-2', 'ring-primary'), 2000);
     }
   }
 
   /**
-   * Setup Planner Interactions
+   * Setup AI Planner Interactions
    */
   function setupPlannerInteractions() {
+    // City buttons in planner view
+    document.querySelectorAll('[data-planner-city]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-planner-city]').forEach(b => {
+          b.classList.remove('border-primary', 'bg-primary/5');
+          b.classList.add('border-outline-variant/40');
+        });
+        btn.classList.add('border-primary', 'bg-primary/5');
+        btn.classList.remove('border-outline-variant/40');
+        state.plannerForm.cityId = btn.getAttribute('data-planner-city');
+      });
+    });
+
     // Duration selection
     document.querySelectorAll('[data-planner-duration]').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('[data-planner-duration]').forEach(b => {
-          b.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm', 'border-primary');
-          b.classList.add('bg-surface-container-lowest', 'text-on-surface');
+          b.classList.remove('border-primary', 'bg-primary/5');
+          b.classList.add('border-outline-variant/40');
         });
-        btn.classList.remove('bg-surface-container-lowest', 'text-on-surface');
-        btn.classList.add('bg-primary', 'text-on-primary', 'shadow-sm', 'border-primary');
+        btn.classList.add('border-primary', 'bg-primary/5');
+        btn.classList.remove('border-outline-variant/40');
         state.plannerForm.duration = btn.getAttribute('data-planner-duration');
       });
     });
 
     // Budget slider
     const budgetSlider = document.getElementById('planner-budget-slider');
-    const budgetDisplay = document.getElementById('planner-budget-display');
-    if (budgetSlider && budgetDisplay) {
+    const budgetLabel = document.getElementById('planner-budget-label');
+    if (budgetSlider && budgetLabel) {
       budgetSlider.addEventListener('input', (e) => {
         const val = parseInt(e.target.value, 10);
         state.plannerForm.budget = val;
-        budgetDisplay.textContent = `₹${val.toLocaleString()}`;
+        budgetLabel.textContent = `₹${val.toLocaleString('en-IN')}`;
       });
     }
 
-    // Interests chips (multi-select)
+    // Pace selection
+    document.querySelectorAll('[data-planner-pace]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-planner-pace]').forEach(b => {
+          b.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+          b.classList.add('bg-surface-container-lowest', 'text-on-surface');
+        });
+        btn.classList.remove('bg-surface-container-lowest', 'text-on-surface');
+        btn.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+        state.plannerForm.pace = btn.getAttribute('data-planner-pace');
+      });
+    });
+
+    // Interests multiple selection
     document.querySelectorAll('[data-planner-interest]').forEach(btn => {
       btn.addEventListener('click', () => {
         const interest = btn.getAttribute('data-planner-interest');
@@ -485,7 +660,6 @@ const YatraApp = (function() {
   }
 
   function triggerQuickPlan() {
-    // Gather quick inputs from hero
     const cityInput = document.getElementById('hero-dest-input');
     if (cityInput && cityInput.value.toLowerCase().includes('varanasi')) {
       state.plannerForm.cityId = 'varanasi';
@@ -500,16 +674,60 @@ const YatraApp = (function() {
     generateTripFromForm();
   }
 
-  function generateTripFromForm() {
-    // Show spinner toast
+  async function generateTripFromForm() {
     showToast('AI Route Engine calculating zero-backtrack corridor...');
 
+    const city = YATRA_CITIES[state.plannerForm.cityId] || YATRA_CITIES.patna;
+    let availableTimeMinutes = 240;
+    if (state.plannerForm.duration === '1-hour' || state.plannerForm.duration === 1) availableTimeMinutes = 60;
+    else if (state.plannerForm.duration === '2-hour' || state.plannerForm.duration === 2) availableTimeMinutes = 120;
+    else if (state.plannerForm.duration === 'half-day') availableTimeMinutes = 270;
+    else if (state.plannerForm.duration === 'full-day') availableTimeMinutes = 480;
+
+    try {
+      const response = await YatraApi.planTrip({
+        location: {
+          city: city.name,
+          latitude: city.coordinates[0],
+          longitude: city.coordinates[1]
+        },
+        availableTimeMinutes,
+        budget: state.plannerForm.budget || 1000,
+        interests: state.plannerForm.interests || ['history', 'culture'],
+        mood: state.plannerForm.pace || 'balanced',
+        travelGroup: state.plannerForm.companion || 'solo',
+        transportPreference: 'walking'
+      });
+
+      if (response && response.trip) {
+        const backendTrip = response.trip;
+        // Normalize stops for map renderer
+        backendTrip.stops.forEach(s => {
+          if (s.place) {
+            s.place.lat = s.place.latitude;
+            s.place.lng = s.place.longitude;
+            s.place.image = s.place.photos?.[0] || 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80';
+          }
+          s.arrival = s.startTime || '09:30 AM';
+          s.dwell = `${s.durationMinutes}m`;
+        });
+
+        state.currentItinerary = backendTrip;
+        window.location.hash = '#itinerary';
+        showToast('AI Yatra Generated! 100% Zero-Backtrack Corridor.');
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend AI Planner fallback:', err);
+    }
+
+    // Fallback to local planner engine
     setTimeout(() => {
       const newTrip = YatraPlanner.generateItinerary(state.plannerForm);
       state.currentItinerary = newTrip;
       window.location.hash = '#itinerary';
       showToast('Optimal Yatra Generated! 100% Zero-Backtrack.');
-    }, 600);
+    }, 400);
   }
 
   /**
@@ -521,10 +739,10 @@ const YatraApp = (function() {
 
     // Set Header metrics
     document.getElementById('itinerary-title').textContent = trip.title;
-    document.getElementById('itinerary-subtitle').textContent = trip.subtitle;
-    document.getElementById('metric-duration').textContent = trip.duration;
+    document.getElementById('itinerary-subtitle').textContent = trip.subtitle || `${trip.stops?.length || 4} stops in ${trip.locationName || 'Patna'}`;
+    document.getElementById('metric-duration').textContent = trip.duration || `${trip.durationHours || 4} hours`;
     document.getElementById('metric-spend').textContent = `₹${trip.estimatedCost}`;
-    document.getElementById('metric-spend-max').textContent = `of ₹${trip.maxBudget} budget`;
+    document.getElementById('metric-spend-max').textContent = `of ₹${trip.maxBudget || trip.budget || 1000} budget`;
     document.getElementById('metric-distance').textContent = `${trip.distanceKm} km`;
 
     // Render Timeline Stops
@@ -532,13 +750,14 @@ const YatraApp = (function() {
     if (!timelineContainer) return;
 
     timelineContainer.innerHTML = trip.stops.map((stop, idx) => {
-      const place = typeof stop.placeId === 'string'
+      let place = typeof stop.placeId === 'string'
         ? YATRA_PLACES.find(p => p.id === stop.placeId) || stop.place
         : stop.place;
 
       if (!place) return '';
 
       const isLast = idx === trip.stops.length - 1;
+      const imageUrl = place.photos?.[0] || place.image || 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80';
 
       return `
         <div class="relative pl-14 pb-8 group">
@@ -551,9 +770,9 @@ const YatraApp = (function() {
           <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm border border-slate-100 dark:border-slate-800 hover:shadow-md transition-all">
             <div class="flex flex-col md:flex-row gap-space-md">
               <div class="w-full md:w-44 h-36 rounded-lg overflow-hidden shrink-0 relative">
-                <img src="${place.image}" alt="${place.name}" class="w-full h-full object-cover">
+                <img src="${imageUrl}" alt="${place.name}" class="w-full h-full object-cover">
                 <span class="absolute bottom-2 left-2 bg-black/70 backdrop-blur-sm text-white text-[11px] px-2 py-0.5 rounded">
-                  ${stop.dwell}
+                  ${stop.dwell || stop.durationMinutes + 'm'}
                 </span>
               </div>
 
@@ -561,12 +780,12 @@ const YatraApp = (function() {
                 <div>
                   <div class="flex items-start justify-between gap-2">
                     <div>
-                      <span class="text-xs font-bold text-primary uppercase tracking-wider">${place.badge}</span>
+                      <span class="text-xs font-bold text-primary uppercase tracking-wider">${place.badge || place.category}</span>
                       <h4 class="font-bold text-lg text-on-surface mt-0.5">${place.name}</h4>
                     </div>
                     <div class="text-right">
                       <span class="text-xs font-bold text-primary px-2.5 py-1 bg-surface-container rounded-full">
-                        Arrive ${stop.arrival}
+                        Arrive ${stop.arrival || stop.startTime || '09:30 AM'}
                       </span>
                     </div>
                   </div>
@@ -575,7 +794,7 @@ const YatraApp = (function() {
                   
                   <div class="mt-2 text-xs text-secondary font-medium flex items-center gap-1">
                     <span class="material-symbols-outlined text-[15px]">tips_and_updates</span>
-                    <span>${place.localFoodTip}</span>
+                    <span>${place.localFoodTip || 'Local street culinary delicacies available outside gate.'}</span>
                   </div>
                 </div>
 
@@ -590,6 +809,9 @@ const YatraApp = (function() {
                     <button onclick="YatraApp.swapStop(${idx})" class="px-2.5 py-1 bg-surface-container rounded hover:bg-surface-container-high text-on-surface font-medium flex items-center gap-1">
                       <span class="material-symbols-outlined text-[14px]">swap_vert</span> Swap
                     </button>
+                    <button onclick="YatraApp.replaceStopLive(${idx})" class="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded hover:bg-amber-500/20 text-xs font-semibold flex items-center gap-1" title="YATRA LIVE: Replace stop if closed or delayed">
+                      <span class="material-symbols-outlined text-[14px]">bolt</span> Replace Stop
+                    </button>
                   </div>
                 </div>
               </div>
@@ -601,7 +823,7 @@ const YatraApp = (function() {
             <div class="mt-3 ml-2 flex items-center gap-2 text-xs font-semibold text-primary">
               <span class="material-symbols-outlined text-[16px]">navigation</span>
               <span class="bg-primary-fixed/60 text-on-primary-fixed px-2.5 py-0.5 rounded-full">
-                ${stop.transitNext}
+                ${stop.transitNext || '10m via Transit'}
               </span>
             </div>
           ` : ''}
@@ -618,8 +840,37 @@ const YatraApp = (function() {
   /**
    * Save current trip
    */
-  function saveCurrentTrip() {
+  async function saveCurrentTrip() {
     if (!state.currentItinerary) return;
+
+    try {
+      showToast('Saving Yatra to your profile...');
+      const saved = await YatraApi.createTrip({
+        title: state.currentItinerary.title || 'My Yatra',
+        locationName: YATRA_CITIES[state.activeCityId]?.name || 'Patna',
+        latitude: YATRA_CITIES[state.activeCityId]?.coordinates[0] || 25.5941,
+        longitude: YATRA_CITIES[state.activeCityId]?.coordinates[1] || 85.1376,
+        durationMinutes: Math.round((state.currentItinerary.durationHours || 4) * 60),
+        budget: state.currentItinerary.maxBudget || state.currentItinerary.budget || 1000,
+        stops: state.currentItinerary.stops.map((s, idx) => ({
+          placeId: typeof s.placeId === 'string' ? s.placeId : s.place?.id,
+          order: idx + 1,
+          durationMinutes: parseInt(s.dwell) || s.durationMinutes || 45
+        }))
+      });
+
+      if (saved?.trip) {
+        state.currentItinerary.id = saved.trip.id;
+        state.savedTrips.unshift(state.currentItinerary);
+        persistSavedTrips();
+        showToast('Yatra successfully saved to backend & offline library!');
+        return;
+      }
+    } catch (e) {
+      console.warn('Backend save fallback:', e);
+    }
+
+    // Local fallback
     const exists = state.savedTrips.some(t => t.id === state.currentItinerary.id);
     if (!exists) {
       state.savedTrips.push(state.currentItinerary);
@@ -633,9 +884,20 @@ const YatraApp = (function() {
   /**
    * Render My Trips View
    */
-  function renderMyTripsView() {
+  async function renderMyTripsView() {
     const container = document.getElementById('my-trips-list');
     if (!container) return;
+
+    // Fetch saved trips from backend
+    try {
+      const data = await YatraApi.getTrips();
+      if (data?.trips && data.trips.length > 0) {
+        state.savedTrips = data.trips;
+        persistSavedTrips();
+      }
+    } catch (e) {
+      console.warn('Backend trips fetch notice:', e);
+    }
 
     if (state.savedTrips.length === 0) {
       container.innerHTML = `
@@ -657,9 +919,9 @@ const YatraApp = (function() {
     container.innerHTML = state.savedTrips.map(trip => `
       <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-slate-100 dark:border-slate-800 flex flex-col">
         <div class="h-44 w-full relative">
-          <img src="${trip.image}" alt="${trip.title}" class="w-full h-full object-cover">
+          <img src="${trip.image || 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80'}" alt="${trip.title}" class="w-full h-full object-cover">
           <span class="absolute top-3 left-3 bg-primary text-white text-xs font-bold px-2.5 py-1 rounded shadow">
-            ${trip.duration}
+            ${trip.duration || '4 hours'}
           </span>
           <button onclick="YatraApp.deleteSavedTrip('${trip.id}')" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 text-red-600 flex items-center justify-center hover:bg-red-50 shadow">
             <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -668,20 +930,20 @@ const YatraApp = (function() {
         <div class="p-4 flex-1 flex flex-col justify-between">
           <div>
             <h4 class="font-bold text-lg text-on-surface">${trip.title}</h4>
-            <p class="text-xs text-on-surface-variant mt-1">${trip.subtitle}</p>
+            <p class="text-xs text-on-surface-variant mt-1">${trip.subtitle || trip.locationName || 'Indian Cultural Yatra'}</p>
             <div class="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
-              <span><strong>${trip.stopsCount}</strong> stops</span>
+              <span><strong>${trip.stopsCount || trip.stops?.length || 0}</strong> stops</span>
               <span>•</span>
-              <span><strong>₹${trip.estimatedCost}</strong> total spend</span>
+              <span><strong>₹${trip.estimatedCost || trip.budget || 0}</strong> total spend</span>
               <span>•</span>
-              <span><strong>${trip.distanceKm}</strong> km</span>
+              <span><strong>${trip.distanceKm || 5.2}</strong> km</span>
             </div>
           </div>
           <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <button onclick="YatraApp.loadSavedTrip('${trip.id}')" class="px-4 py-1.5 bg-primary text-white text-xs font-semibold rounded-lg hover:bg-primary-hover transition-colors">
               Open Itinerary
             </button>
-            <span class="text-[11px] text-secondary font-bold">${trip.efficiencyScore}</span>
+            <span class="text-[11px] text-secondary font-bold">${trip.efficiencyScore || '100% Zero-Backtrack'}</span>
           </div>
         </div>
       </div>
@@ -696,7 +958,12 @@ const YatraApp = (function() {
     }
   }
 
-  function deleteSavedTrip(tripId) {
+  async function deleteSavedTrip(tripId) {
+    try {
+      await YatraApi.deleteTrip(tripId);
+    } catch (e) {
+      console.warn('Delete trip backend notice:', e);
+    }
     state.savedTrips = state.savedTrips.filter(t => t.id !== tripId);
     persistSavedTrips();
     renderMyTripsView();
@@ -706,29 +973,41 @@ const YatraApp = (function() {
   /**
    * Place Detail Modal
    */
-  function openPlaceModal(placeId) {
-    const place = YATRA_PLACES.find(p => p.id === placeId);
+  async function openPlaceModal(placeId) {
+    let place = YATRA_PLACES.find(p => p.id === placeId);
+    try {
+      const res = await YatraApi.getPlaceDetails(placeId);
+      if (res?.place) {
+        place = {
+          ...place,
+          ...res.place,
+          image: res.place.photos?.[0] || place?.image || 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80'
+        };
+      }
+    } catch {}
+
     if (!place) return;
 
     const modal = document.getElementById('place-detail-modal');
     if (!modal) return;
 
     document.getElementById('modal-place-title').textContent = place.name;
-    document.getElementById('modal-place-badge').textContent = place.badge;
-    document.getElementById('modal-place-image').src = place.image;
+    document.getElementById('modal-place-badge').textContent = place.badge || place.category;
+    document.getElementById('modal-place-image').src = place.image || place.photos?.[0];
     document.getElementById('modal-place-rating').textContent = place.rating;
-    document.getElementById('modal-place-reviews').textContent = `(${place.reviewsCount} reviews)`;
+    document.getElementById('modal-place-reviews').textContent = `(${place.reviewsCount || place.reviewCount || 100} reviews)`;
     document.getElementById('modal-place-desc').textContent = place.description;
     document.getElementById('modal-place-address').textContent = place.address;
-    document.getElementById('modal-place-hours').textContent = place.openStatus;
+    document.getElementById('modal-place-hours').textContent = place.openStatus || place.openingHours || 'Open Today';
     document.getElementById('modal-place-fee').textContent = place.entryFee === 0 ? 'Free Entry' : `₹${place.entryFee} per ticket`;
-    document.getElementById('modal-place-food').textContent = place.localFoodTip;
-    document.getElementById('modal-place-transit').textContent = place.recommendedTransit;
+    document.getElementById('modal-place-food').textContent = place.localFoodTip || 'Authentic regional dishes available nearby';
+    document.getElementById('modal-place-transit').textContent = place.recommendedTransit || 'Easily accessible via local cabs or e-rickshaw';
 
     // Highlights
     const hlContainer = document.getElementById('modal-place-highlights');
     if (hlContainer) {
-      hlContainer.innerHTML = place.highlights.map(h => `
+      const highlights = place.highlights || ['Historic significance', 'Cultural heritage architecture', 'Panoramic photography view'];
+      hlContainer.innerHTML = highlights.map(h => `
         <li class="flex items-center gap-2 text-xs text-on-surface">
           <span class="material-symbols-outlined text-primary text-[16px]">check_circle</span>
           <span>${h}</span>
@@ -738,8 +1017,9 @@ const YatraApp = (function() {
 
     // Crowd graph
     const crowdContainer = document.getElementById('modal-place-crowd-bars');
-    if (crowdContainer && place.crowdByHour) {
-      crowdContainer.innerHTML = place.crowdByHour.map((pct, idx) => `
+    if (crowdContainer) {
+      const crowdByHour = place.crowdByHour || [15, 30, 50, 65, 75, 70, 55, 35, 10];
+      crowdContainer.innerHTML = crowdByHour.map((pct, idx) => `
         <div class="crowd-col ${idx === 4 ? 'active' : ''}" style="height: ${Math.max(10, pct)}%;" title="${8 + idx}:00 - ${pct}% crowd"></div>
       `).join('');
     }
@@ -779,7 +1059,7 @@ const YatraApp = (function() {
       placeId: place.id,
       place: place,
       arrival: "02:30 PM",
-      dwell: `${place.dwellTimeMin}m`,
+      dwell: `${place.dwellTimeMin || 45}m`,
       transitNext: "Tour Concludes"
     });
 
@@ -787,14 +1067,16 @@ const YatraApp = (function() {
     showToast(`Added ${place.name} to your Yatra!`);
   }
 
-  function toggleFavorite(placeId, event) {
+  async function toggleFavorite(placeId, event) {
     if (event) event.stopPropagation();
     const idx = state.favorites.indexOf(placeId);
     if (idx > -1) {
       state.favorites.splice(idx, 1);
+      try { await YatraApi.removeSavedPlace(placeId); } catch {}
       showToast('Removed from saved places');
     } else {
       state.favorites.push(placeId);
+      try { await YatraApi.savePlace(placeId); } catch {}
       showToast('Added to saved places');
     }
     persistFavorites();
@@ -838,7 +1120,7 @@ const YatraApp = (function() {
     document.getElementById('nav-instruction').textContent = state.navSimulationIndex === 0
       ? `Depart starting location towards ${place.name}`
       : `Continue straight on main corridor towards ${place.name}`;
-    document.getElementById('nav-eta').textContent = `ETA: ${currentStop.arrival}`;
+    document.getElementById('nav-eta').textContent = `ETA: ${currentStop.arrival || currentStop.startTime || '09:30 AM'}`;
     document.getElementById('nav-dist-remaining').textContent = `${(1.2 - state.navSimulationIndex * 0.3).toFixed(1)} km away`;
   }
 
@@ -879,6 +1161,37 @@ const YatraApp = (function() {
     if (modal) modal.classList.remove('open');
   }
 
+  async function submitAuth() {
+    const emailInput = document.getElementById('auth-email-input');
+    const passInput = document.getElementById('auth-password-input');
+    const email = emailInput ? emailInput.value.trim() : 'traveler@yatra.in';
+    const password = passInput ? passInput.value : 'Traveler@123';
+
+    const submitBtn = document.getElementById('auth-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<span>Signing In...</span>';
+
+    try {
+      let res;
+      try {
+        res = await YatraApi.login(email, password);
+      } catch (loginErr) {
+        // If user doesn't exist, register
+        res = await YatraApi.register(email.split('@')[0], email, password);
+      }
+
+      if (res?.user) {
+        state.currentUser = res.user;
+        closeAuthModal();
+        showToast(`Welcome back, ${res.user.name}!`);
+        await renderMyTripsView();
+      }
+    } catch (err) {
+      showToast(err.message || 'Authentication error');
+    } finally {
+      if (submitBtn) submitBtn.innerHTML = '<span>Sign In / Register</span>';
+    }
+  }
+
   /**
    * Toast notification system
    */
@@ -907,6 +1220,58 @@ const YatraApp = (function() {
     }
   }
 
+  /**
+   * YATRA LIVE: Replace unavailable stop and recalculate remaining itinerary
+   */
+  async function replaceStopLive(stopIndex) {
+    if (!state.currentItinerary || !state.currentItinerary.stops) return;
+    const targetStop = state.currentItinerary.stops[stopIndex];
+    if (!targetStop) return;
+
+    showToast('YATRA LIVE: Finding optimal alternative stop & recalculating...');
+
+    try {
+      const tripId = state.currentItinerary.id;
+      const res = await YatraApi.recalculateTrip(tripId, {
+        reason: 'PLACE_UNAVAILABLE',
+        affectedStopId: targetStop.id || targetStop.placeId,
+        currentLocation: {
+          latitude: targetStop.place?.latitude || targetStop.place?.lat || 25.5941,
+          longitude: targetStop.place?.longitude || targetStop.place?.lng || 85.1376
+        }
+      });
+
+      if (res && res.trip) {
+        state.currentItinerary = res.trip;
+        // Normalize stops for map renderer
+        state.currentItinerary.stops.forEach(s => {
+          if (s.place) {
+            s.place.lat = s.place.latitude;
+            s.place.lng = s.place.longitude;
+            s.place.image = s.place.photos?.[0] || s.place.image;
+          }
+          s.arrival = s.startTime || '09:30 AM';
+          s.dwell = `${s.durationMinutes}m`;
+        });
+        renderItineraryView();
+        showToast('YATRA LIVE: Alternative stop found! Itinerary recalculated.');
+        return;
+      }
+    } catch (e) {
+      console.warn('Live replan API notice:', e);
+    }
+
+    // Fallback: swap with next available city place
+    const currentPlaceIds = state.currentItinerary.stops.map(s => s.placeId || s.place?.id);
+    const alternative = YATRA_PLACES.find(p => p.cityId === state.activeCityId && !currentPlaceIds.includes(p.id));
+    if (alternative) {
+      state.currentItinerary.stops[stopIndex].placeId = alternative.id;
+      state.currentItinerary.stops[stopIndex].place = alternative;
+      renderItineraryView();
+      showToast(`YATRA LIVE: Replaced with ${alternative.name}`);
+    }
+  }
+
   return {
     init,
     setCity,
@@ -917,6 +1282,7 @@ const YatraApp = (function() {
     closePlaceModal,
     openAuthModal,
     closeAuthModal,
+    submitAuth,
     addPlaceToItinerary,
     toggleFavorite,
     startNavigationSimulation,
@@ -928,6 +1294,7 @@ const YatraApp = (function() {
     deleteSavedTrip,
     loadSavedTrip,
     swapStop,
+    replaceStopLive,
     showToast
   };
 })();

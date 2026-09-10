@@ -1,4 +1,15 @@
-# Archives and temporary extracted files
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Production build output
+dist/
+
+# Large zip archives & raw extracted files
 *.zip
 extracted_original/
 extracted_yatra/
