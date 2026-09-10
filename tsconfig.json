@@ -13,6 +13,6 @@
     "resolveJsonModule": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["server/**/*", "types/**/*", "tests/**/*", "prisma/**/*"],
+  "include": ["server/**/*", "api/**/*", "types/**/*", "tests/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist"]
 }

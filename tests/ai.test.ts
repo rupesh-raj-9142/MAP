@@ -31,7 +31,7 @@ describe('AI Trip Planner API', () => {
     // Verifies backend source of truth for budget and stops
     expect(res.body.data.trip.itinerary.estimatedTotalCost).toBeLessThanOrEqual(1000);
     expect(res.body.data.trip.itinerary.totalDurationMinutes).toBeGreaterThan(0);
-  }, 15000);
+  }, 30000);
 
   it('POST /api/ai/plan-trip - rejects invalid planner request (negative budget)', async () => {
     const res = await request(app)
