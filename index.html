@@ -237,200 +237,124 @@
         <div class="absolute -right-40 -top-40 w-96 h-96 rounded-full bg-primary-fixed/40 blur-3xl pointer-events-none"></div>
         <div class="absolute right-1/4 top-1/2 w-80 h-80 rounded-full bg-secondary-fixed/30 blur-3xl pointer-events-none"></div>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            
-            <!-- Left: Hero Headline & Quick Planning Card -->
-            <div class="lg:col-span-7 flex flex-col">
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high w-fit mb-4 shadow-sm">
-                <span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
-                <span class="text-xs font-bold uppercase tracking-wider text-secondary">Smart Route Engine 2.0</span>
-              </div>
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-surface-container-high w-fit mb-4 shadow-xs">
+            <span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+            <span class="text-xs font-bold uppercase tracking-wider text-secondary">Smart Route Engine 2.0</span>
+          </div>
 
-              <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-on-surface tracking-tight leading-tight">
-                Your Journey <br/>
-                <span class="text-primary bg-gradient-to-r from-primary via-primary-container to-blue-500 bg-clip-text text-transparent">
-                  Starts Here.
-                </span>
-              </h1>
+          <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-on-surface tracking-tight leading-tight">
+            Your Journey <br class="hidden sm:inline"/>
+            <span class="text-primary bg-gradient-to-r from-primary via-primary-container to-blue-500 bg-clip-text text-transparent">
+              Starts Here.
+            </span>
+          </h1>
 
-              <p class="text-base sm:text-lg text-on-surface-variant mt-4 max-w-xl leading-relaxed">
-                Discover amazing heritage spots, sacred ghats, and hidden culinary gems around you with effortless zero-backtrack route orchestration.
-              </p>
+          <p class="text-base sm:text-lg text-on-surface-variant mt-4 max-w-2xl leading-relaxed">
+            Discover amazing heritage spots, sacred ghats, and hidden culinary gems around you with effortless zero-backtrack route orchestration.
+          </p>
 
-              <!-- Quick Search & Planning Card -->
-              <div class="mt-8 bg-surface-container-lowest rounded-2xl p-6 shadow-xl shadow-on-surface/5 flex flex-col gap-5 border border-outline-variant/30">
-                <!-- Location Sector -->
-                <div class="flex flex-col gap-2">
-                  <label class="text-xs uppercase tracking-wider font-bold text-on-surface">Where are you going?</label>
-                  <div class="flex flex-col sm:flex-row gap-2">
-                    <div class="relative flex-1">
-                      <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-                      <input 
-                        id="hero-dest-input" 
-                        type="text" 
-                        class="w-full h-12 pl-10 pr-4 rounded-lg bg-surface text-on-surface font-medium text-sm placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 border border-outline-variant/40 transition-all" 
-                        placeholder="e.g., Patna, Varanasi, Jaipur, Delhi..." 
-                        value="Patna, Bihar"
-                      />
-                    </div>
-                    <button 
-                      type="button" 
-                      onclick="YatraApp.showToast('Acquired GPS coordinates for Patna city center')" 
-                      class="h-12 px-4 rounded-lg bg-surface-low hover:bg-surface-container text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0"
-                    >
-                      <span class="material-symbols-outlined text-primary text-[18px]">my_location</span>
-                      <span>Use My GPS</span>
-                    </button>
-                    <button 
-                      id="hero-explore-btn" 
-                      type="button" 
-                      class="h-12 px-6 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all shrink-0 active:scale-95"
-                    >
-                      <span>Explore Nearby</span>
-                      <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </button>
-                  </div>
+          <!-- Quick Search & Planning Card -->
+          <div class="mt-8 w-full bg-surface-container-lowest rounded-2xl p-6 sm:p-8 shadow-xl shadow-on-surface/5 flex flex-col gap-5 border border-outline-variant/30 text-left">
+            <!-- Location Sector -->
+            <div class="flex flex-col gap-2">
+              <label class="text-xs uppercase tracking-wider font-bold text-on-surface">Where are you going?</label>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-1">
+                  <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                  <input 
+                    id="hero-dest-input" 
+                    type="text" 
+                    class="w-full h-12 pl-10 pr-4 rounded-lg bg-surface text-on-surface font-medium text-sm placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 border border-outline-variant/40 transition-all" 
+                    placeholder="e.g., Patna, Varanasi, Jaipur, Delhi..." 
+                    value="Patna, Bihar"
+                  />
                 </div>
-
-                <!-- Quick Trip Preferences Sub-Card -->
-                <div class="bg-surface-low rounded-xl p-4 flex flex-col gap-4 border border-outline-variant/30">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-bold text-on-surface flex items-center gap-1.5">
-                      <span class="material-symbols-outlined text-secondary text-[20px]">tune</span>
-                      What kind of Yatra are you planning?
-                    </span>
-                    <span class="text-[11px] text-on-surface-variant font-mono bg-surface-container px-2 py-0.5 rounded">
-                      Dynamic AI Curated
-                    </span>
-                  </div>
-
-                  <!-- Time Chips -->
-                  <div class="flex flex-col gap-1.5">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Duration</span>
-                    <div class="flex flex-wrap gap-2">
-                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">1 Hour</button>
-                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">2 Hours</button>
-                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">Half Day</button>
-                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Full Day</button>
-                    </div>
-                  </div>
-
-                  <!-- Budget Chips -->
-                  <div class="flex flex-col gap-1.5">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Per-Person Budget</span>
-                    <div class="flex flex-wrap gap-2">
-                      <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Free</button>
-                      <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹500</button>
-                      <button class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">₹1,000</button>
-                      <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹2,500+</button>
-                    </div>
-                  </div>
-
-                  <!-- Interests Chips -->
-                  <div class="flex flex-col gap-1.5">
-                    <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Interests & Mood</span>
-                    <div class="flex flex-wrap gap-2">
-                      <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
-                        <span>🏛️</span> History
-                      </span>
-                      <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container text-on-surface flex items-center gap-1">
-                        <span>🌿</span> Nature
-                      </span>
-                      <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
-                        <span>🍛</span> Food
-                      </span>
-                      <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
-                        <span>🎭</span> Culture
-                      </span>
-                      <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest text-on-surface flex items-center gap-1">
-                        <span>⚡</span> Adventure
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Quick Submit -->
-                  <button 
-                    id="hero-create-yatra-btn" 
-                    type="button" 
-                    class="mt-1 w-full h-12 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.99]"
-                  >
-                    <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
-                    <span>Create My Yatra</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right: Interactive Collage & Featured Route Showcase -->
-            <div class="lg:col-span-5 relative mt-6 lg:mt-0">
-              <div class="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-surface-container-lowest aspect-[4/5] flex flex-col justify-end border border-outline-variant/30 group">
-                
-                <!-- Autoplaying Cinematic Animated Video Background -->
-                <video 
-                  class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 pointer-events-none"
-                  autoplay 
-                  loop 
-                  muted 
-                  playsinline 
-                  poster="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1000&q=80"
+                <button 
+                  type="button" 
+                  onclick="YatraApp.showToast('Acquired GPS coordinates for Patna city center')" 
+                  class="h-12 px-4 rounded-lg bg-surface-low hover:bg-surface-container text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0"
                 >
-                  <source src="https://pixabay.com/videos/download/video-24541_medium.mp4" type="video/mp4">
-                  <source src="assets/videos/hero_corridor.webm" type="video/webm">
-                  <!-- Fallback Image if video is unsupported -->
-                  <img src="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1000&q=80" alt="Patna Riverfront" class="w-full h-full object-cover"/>
-                </video>
-                
-                <!-- Ambient Dark Scrim Gradient -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none"></div>
-
-                <!-- Bottom Caption on Hero Card (Expanded Story & Narrative) -->
-                <div class="relative z-10 p-6 sm:p-8 text-white flex flex-col gap-3">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-amber-300 uppercase tracking-widest bg-amber-400/20 border border-amber-300/30 px-2.5 py-1 rounded-full backdrop-blur-xs">Featured Corridor</span>
-                    <span class="text-xs font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1 rounded-full backdrop-blur-xs flex items-center gap-1">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Zero Backtrack Verified
-                    </span>
-                  </div>
-
-                  <h3 class="font-display font-extrabold text-2xl sm:text-3xl leading-snug tracking-tight text-white drop-shadow-sm">
-                    Patna Riverfront &amp; Mauryan Heritage Corridor
-                  </h3>
-
-                  <p class="text-sm text-slate-200 leading-relaxed font-normal">
-                    Experience an expertly orchestrated heritage journey across Patna's monumental landmarks: begin at iconic Golghar, stroll through the grand Sabhyata Dwar riverfront promenade, delve into antiquity at Bihar Museum, and conclude with authentic street food tasting at Maurya Lok.
-                  </p>
-
-                  <div class="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-300">
-                    <span class="inline-flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-md">
-                      <span class="material-symbols-outlined text-[15px] text-amber-400">schedule</span>
-                      3.5 Hours
-                    </span>
-                    <span class="inline-flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-md">
-                      <span class="material-symbols-outlined text-[15px] text-emerald-400">currency_rupee</span>
-                      ₹450 Est. Cost
-                    </span>
-                    <span class="inline-flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-md">
-                      <span class="material-symbols-outlined text-[15px] text-sky-400">directions_walk</span>
-                      4 Curated Stops
-                    </span>
-                  </div>
-
-                  <div class="flex items-center gap-3 mt-2">
-                    <a href="#itinerary" class="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-all shadow-lg active:scale-95 flex items-center gap-1.5">
-                      <span>Explore This Yatra</span>
-                      <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-                    </a>
-                    <div class="flex items-center gap-1.5 text-xs text-slate-300">
-                      <span class="text-amber-400 font-bold">★ 4.8</span>
-                      <span>(1,240 travelers)</span>
-                    </div>
-                  </div>
-                </div>
+                  <span class="material-symbols-outlined text-primary text-[18px]">my_location</span>
+                  <span>Use My GPS</span>
+                </button>
+                <button 
+                  id="hero-explore-btn" 
+                  type="button" 
+                  class="h-12 px-6 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all shrink-0 active:scale-95"
+                >
+                  <span>Explore Nearby</span>
+                  <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
               </div>
             </div>
 
+            <!-- Quick Trip Preferences Sub-Card -->
+            <div class="bg-surface-low rounded-xl p-4 flex flex-col gap-4 border border-outline-variant/30">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-secondary text-[20px]">tune</span>
+                  What kind of Yatra are you planning?
+                </span>
+                <span class="text-[11px] text-on-surface-variant font-mono bg-surface-container px-2 py-0.5 rounded">
+                  Dynamic AI Curated
+                </span>
+              </div>
+
+              <!-- Time Chips -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Duration</span>
+                <div class="flex flex-wrap gap-2">
+                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">1 Hour</button>
+                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">2 Hours</button>
+                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">Half Day</button>
+                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Full Day</button>
+                </div>
+              </div>
+
+              <!-- Budget Chips -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Per-Person Budget</span>
+                <div class="flex flex-wrap gap-2">
+                  <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Free</button>
+                  <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹500</button>
+                  <button class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">₹1,000</button>
+                  <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹2,500+</button>
+                </div>
+              </div>
+
+              <!-- Interests Chips -->
+              <div class="flex flex-col gap-1.5">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Interests & Mood</span>
+                <div class="flex flex-wrap gap-2">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
+                    <span>🏛️</span> History
+                  </span>
+                  <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container text-on-surface flex items-center gap-1">
+                    <span>🌿</span> Nature
+                  </span>
+                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
+                    <span>🍛</span> Food
+                  </span>
+                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
+                    <span>🎭</span> Culture
+                  </span>
+                  <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest text-on-surface flex items-center gap-1">
+                    <span>⚡</span> Adventure
+                  </span>
+                </div>
+              </div>
+
+              <!-- Quick Submit -->
+              <button 
+                id="hero-create-yatra-btn" 
+                type="button" 
+                class="mt-1 w-full h-12 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.99]"
+              >
+                <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                <span>Create My Yatra</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
