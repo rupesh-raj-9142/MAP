@@ -2,11 +2,13 @@
   "name": "yatra-backend",
   "version": "1.0.0",
   "description": "Production-ready backend for YATRA travel discovery and route orchestration platform",
-  "main": "dist/server.js",
+  "type": "module",
+  "main": "dist/server/server.js",
   "scripts": {
     "dev": "tsx watch server/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "build": "prisma generate && tsc && node scripts/build.js",
+    "postinstall": "prisma generate && tsc && node scripts/build.js",
+    "start": "node dist/server/server.js",
     "prisma:generate": "prisma generate",
     "prisma:seed": "tsx prisma/seed.ts",
     "test": "vitest run"

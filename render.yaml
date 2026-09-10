@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: yatra
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: USE_MOCK_DATA
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
