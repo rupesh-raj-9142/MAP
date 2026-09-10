@@ -1,0 +1,302 @@
+/* ==========================================================================
+   YATRA - Intelligent Travel Discovery & Route Orchestration
+   Design System tokens based on Google Stitch 'Modern Horizon'
+   ========================================================================== */
+
+:root {
+  --primary: #003fb1;
+  --primary-hover: #003399;
+  --primary-container: #1a56db;
+  --on-primary: #ffffff;
+  --on-primary-container: #d4dcff;
+  --primary-fixed: #dbe1ff;
+  --on-primary-fixed: #00174d;
+
+  --secondary: #855300;
+  --secondary-container: #fea619;
+  --on-secondary: #ffffff;
+  --secondary-fixed: #ffddb8;
+  --on-secondary-container: #684000;
+
+  --surface: #f9f9ff;
+  --surface-low: #f0f3ff;
+  --surface-container: #e8eeff;
+  --surface-high: #dfe8ff;
+  --surface-highest: #d6e3ff;
+  --surface-lowest: #ffffff;
+  --on-surface: #0d1c32;
+  --on-surface-variant: #434654;
+
+  --outline: #737686;
+  --outline-variant: #c3c5d7;
+  --surface-tint: #1353d8;
+
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #ba1a1a;
+
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgba(13, 28, 50, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(13, 28, 50, 0.08), 0 2px 4px -2px rgba(13, 28, 50, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(13, 28, 50, 0.08), 0 4px 6px -4px rgba(13, 28, 50, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(13, 28, 50, 0.1), 0 8px 10px -6px rgba(13, 28, 50, 0.04);
+}
+
+/* Dark Mode Tokens */
+body.dark {
+  --surface: #0b1320;
+  --surface-low: #111a2e;
+  --surface-container: #18233c;
+  --surface-high: #202e4d;
+  --surface-highest: #28395e;
+  --surface-lowest: #141e33;
+  --on-surface: #e2e8f0;
+  --on-surface-variant: #94a3b8;
+  --outline: #64748b;
+  --outline-variant: #334155;
+  --primary-fixed: #1e3a8a;
+  --on-primary-fixed: #bfdbfe;
+}
+
+/* Base resets & typography */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  background-color: var(--surface);
+  color: var(--on-surface);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Smooth view transitions */
+.view-section {
+  display: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.view-section.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}
+
+/* Leaflet Map Customization */
+#map-canvas, #itinerary-map {
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+  border-radius: var(--radius-xl);
+  z-index: 10;
+}
+
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xl) !important;
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-container {
+  font-family: var(--font-body) !important;
+}
+
+/* Custom Leaflet Map Pin Marker */
+.yatra-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: #ffffff;
+  border: 2.5px solid var(--primary);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 63, 177, 0.35);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.yatra-marker:hover, .yatra-marker.active {
+  transform: scale(1.22);
+  background: var(--primary);
+  border-color: #ffffff;
+  z-index: 999 !important;
+}
+
+.yatra-marker:hover .marker-icon, .yatra-marker.active .marker-icon {
+  color: #ffffff !important;
+}
+
+.yatra-marker .marker-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--secondary-container);
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #ffffff;
+}
+
+.yatra-marker.numbered {
+  background: var(--primary);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 14px;
+  font-family: var(--font-display);
+  border: 2px solid #ffffff;
+}
+
+/* Pulse animation for active waypoint */
+.pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  animation: marker-pulse 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes marker-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+/* Glassmorphism panels */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+body.dark .glass-panel {
+  background: rgba(20, 30, 51, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Timeline vertical track */
+.timeline-track {
+  position: relative;
+}
+
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 23px;
+  top: 36px;
+  bottom: 24px;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, var(--primary) 0, var(--primary) 6px, transparent 6px, transparent 12px);
+  opacity: 0.4;
+  z-index: 1;
+}
+
+/* Crowd level bar */
+.crowd-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 48px;
+}
+
+.crowd-col {
+  flex: 1;
+  background: var(--surface-container-high);
+  border-radius: 2px;
+  transition: height 0.3s ease, background-color 0.2s ease;
+  position: relative;
+}
+
+.crowd-col.active {
+  background: var(--primary);
+}
+
+.crowd-col:hover {
+  background: var(--secondary-container);
+}
+
+/* Modal animations */
+.modal-backdrop {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.modal-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  transform: scale(0.95) translateY(12px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-backdrop.open .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+/* Navigation simulation turn icon flip */
+.turn-indicator {
+  transition: transform 0.3s ease;
+}

@@ -1,0 +1,11 @@
+# Archives and temporary extracted files
+*.zip
+extracted_original/
+extracted_yatra/
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

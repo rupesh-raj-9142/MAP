@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YATRA — Intelligent Travel Discovery & Route Orchestration</title>
+  <meta name="description" content="Discover amazing places around you and let YATRA plan your perfect trip with effortless zero-backtrack route orchestration and live crowd radar."/>
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#003fb1',
+            'primary-hover': '#003399',
+            'primary-container': '#1a56db',
+            'on-primary': '#ffffff',
+            'primary-fixed': '#dbe1ff',
+            'on-primary-fixed': '#00174d',
+            secondary: '#855300',
+            'secondary-container': '#fea619',
+            'secondary-fixed': '#ffddb8',
+            surface: '#f9f9ff',
+            'surface-low': '#f0f3ff',
+            'surface-container': '#e8eeff',
+            'surface-container-high': '#dfe8ff',
+            'surface-container-lowest': '#ffffff',
+            'on-surface': '#0d1c32',
+            'on-surface-variant': '#434654',
+            outline: '#737686',
+            'outline-variant': '#c3c5d7',
+          },
+          fontFamily: {
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+            body: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased transition-colors duration-200">
+
+  <!-- =========================================================================
+       GLOBAL HEADER
+       ========================================================================= -->
+  <!-- =========================================================================
+       GLOBAL HEADER (Fixed Top Navbar)
+       ========================================================================= -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/95 backdrop-blur-md border-b border-outline-variant/30 shadow-[0_1px_8px_rgba(10,25,47,0.04)]">
+    <div class="h-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      
+      <!-- Left: Brand Logo & Desktop Nav Links -->
+      <div class="flex items-center gap-6 lg:gap-8">
+        <!-- Logo -->
+        <a href="#home" class="flex items-center gap-2 group shrink-0">
+          <svg class="h-8 w-auto" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(4, 8)">
+              <circle cx="20" cy="20" r="18" fill="#1A56DB" />
+              <path d="M20 9C15.03 9 11 13.03 11 18C11 23.5 20 31 20 31C20 31 29 23.5 29 18C29 13.03 24.97 9 20 9Z" fill="#FFFFFF"/>
+              <circle cx="20" cy="17" r="4" fill="#F59E0B"/>
+              <path d="M30 11L33 8M33 19H37M31 27L34 30" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
+            </g>
+            <text x="56" y="37" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-size="28" font-weight="800" letter-spacing="1.5" fill="currentColor" class="text-on-surface">YATRA</text>
+            <circle cx="172" cy="23" r="3.5" fill="#F59E0B"/>
+          </svg>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden lg:flex items-center gap-1 xl:gap-2">
+          <a href="#home" data-nav-target="home" class="text-xs xl:text-sm font-semibold py-2 px-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-low transition-all">Home</a>
+          <a href="#explore" data-nav-target="explore" class="text-xs xl:text-sm font-semibold py-2 px-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-low transition-all">Explore Places</a>
+          <a href="#planner" data-nav-target="planner" class="text-xs xl:text-sm font-semibold py-2 px-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-low transition-all">AI Trip Planner</a>
+          <a href="#itinerary" data-nav-target="itinerary" class="text-xs xl:text-sm font-semibold py-2 px-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-low transition-all">Recommended Yatra</a>
+          <a href="#mytrips" data-nav-target="mytrips" class="text-xs xl:text-sm font-semibold py-2 px-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-low transition-all">My Trips</a>
+        </nav>
+      </div>
+
+      <!-- Right: Action Controls, City Dropdown, Theme Toggle, Profile -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        
+        <!-- City Selector Dropdown (Click & Hover) -->
+        <div class="relative" id="city-selector-container">
+          <button 
+            id="city-dropdown-btn" 
+            type="button" 
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-low hover:bg-surface-container text-on-surface text-xs font-semibold transition-all border border-outline-variant/40 shadow-sm"
+          >
+            <span class="material-symbols-outlined text-[16px] text-primary">location_on</span>
+            <span class="active-city-name">Patna, Bihar</span>
+            <span class="material-symbols-outlined text-[16px] text-outline transition-transform duration-200" id="city-dropdown-arrow">arrow_drop_down</span>
+          </button>
+          
+          <div 
+            id="city-dropdown-menu" 
+            class="absolute right-0 mt-2 w-52 bg-surface-container-lowest rounded-xl shadow-2xl border border-outline-variant/30 py-1.5 hidden z-50 transition-all"
+          >
+            <div class="px-3 py-1.5 text-[10px] font-bold text-outline uppercase tracking-wider border-b border-surface-container mb-1">
+              Select Operating Hub
+            </div>
+            <button data-city-select="patna" class="w-full text-left px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-low flex items-center justify-between transition-colors">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-primary"></span>
+                <span>Patna, Bihar</span>
+              </span>
+              <span class="text-[10px] font-bold text-primary bg-primary-fixed/50 px-1.5 py-0.5 rounded">Active</span>
+            </button>
+            <button data-city-select="varanasi" class="w-full text-left px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-low flex items-center justify-between transition-colors">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-secondary"></span>
+                <span>Varanasi, UP</span>
+              </span>
+              <span class="text-[10px] text-secondary font-bold">Ghats</span>
+            </button>
+            <button data-city-select="jaipur" class="w-full text-left px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-low flex items-center justify-between transition-colors">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span>Jaipur, Rajasthan</span>
+              </span>
+              <span class="text-[10px] text-amber-600 font-bold">Royal</span>
+            </button>
+            <button data-city-select="delhi" class="w-full text-left px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-low flex items-center justify-between transition-colors">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                <span>Delhi, NCR</span>
+              </span>
+              <span class="text-[10px] text-blue-600 font-bold">Heritage</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button 
+          id="theme-toggle-btn" 
+          type="button" 
+          class="w-9 h-9 rounded-full bg-surface-low hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors border border-outline-variant/30" 
+          title="Toggle Dark Mode"
+        >
+          <span class="material-symbols-outlined text-[19px]">dark_mode</span>
+        </button>
+
+        <!-- CTA Button (Desktop) -->
+        <a 
+          href="#planner" 
+          class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold text-xs transition-all shadow-sm active:scale-95 shrink-0"
+        >
+          <span class="material-symbols-outlined text-[16px]">auto_awesome</span>
+          <span>Plan My Trip</span>
+        </a>
+
+        <!-- User Profile Avatar / Login -->
+        <button 
+          type="button" 
+          onclick="YatraApp.openAuthModal()" 
+          class="w-9 h-9 rounded-full bg-primary hover:bg-primary-hover flex items-center justify-center text-white font-bold text-xs shadow-sm transition-transform active:scale-95 shrink-0" 
+          title="Traveler Account"
+        >
+          <span class="material-symbols-outlined text-[18px]">person</span>
+        </button>
+
+        <!-- Mobile Hamburger Toggle Button -->
+        <button 
+          id="mobile-menu-btn" 
+          type="button" 
+          class="lg:hidden w-9 h-9 rounded-lg bg-surface-low hover:bg-surface-container flex items-center justify-center text-on-surface transition-colors border border-outline-variant/30 ml-1"
+          aria-label="Toggle Mobile Menu"
+        >
+          <span id="mobile-menu-icon" class="material-symbols-outlined text-[22px]">menu</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mobile Drawer Menu (Hidden by default, slides down on toggle) -->
+    <div 
+      id="mobile-nav-drawer" 
+      class="lg:hidden hidden bg-surface-container-lowest border-b border-outline-variant/30 shadow-xl px-4 py-4 transition-all"
+    >
+      <nav class="flex flex-col gap-1">
+        <a href="#home" data-nav-target="home" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-surface-low hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[20px] text-primary">home</span>
+          <span>Home</span>
+        </a>
+        <a href="#explore" data-nav-target="explore" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-surface-low hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[20px] text-primary">explore</span>
+          <span>Explore Places</span>
+        </a>
+        <a href="#planner" data-nav-target="planner" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-surface-low hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[20px] text-primary">auto_awesome</span>
+          <span>AI Trip Planner</span>
+        </a>
+        <a href="#itinerary" data-nav-target="itinerary" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-surface-low hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[20px] text-primary">route</span>
+          <span>Recommended Yatra</span>
+        </a>
+        <a href="#mytrips" data-nav-target="mytrips" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-on-surface-variant hover:bg-surface-low hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-[20px] text-primary">bookmark</span>
+          <span>My Saved Trips</span>
+        </a>
+      </nav>
+
+      <div class="mt-3 pt-3 border-t border-surface-container flex items-center justify-between">
+        <span class="text-xs text-on-surface-variant font-medium">Quick Action:</span>
+        <a href="#planner" class="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-lg shadow">
+          Plan My Trip
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================= -->
+  <main class="w-full pt-20">
+
+    <!-- =======================================================================
+         VIEW 1: HOME / DISCOVERY
+         ======================================================================= -->
+    <div id="view-home" class="view-section active">
+      <!-- HERO SECTION -->
+      <section class="relative w-full overflow-hidden bg-surface-low pb-20 pt-10 border-b border-outline-variant/20">
+        <div class="absolute -right-40 -top-40 w-96 h-96 rounded-full bg-primary-fixed/40 blur-3xl pointer-events-none"></div>
+        <div class="absolute right-1/4 top-1/2 w-80 h-80 rounded-full bg-secondary-fixed/30 blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+            
+            <!-- Left: Hero Headline & Quick Planning Card -->
+            <div class="lg:col-span-7 flex flex-col">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high w-fit mb-4 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+                <span class="text-xs font-bold uppercase tracking-wider text-secondary">Smart Route Engine 2.0</span>
+              </div>
+
+              <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-on-surface tracking-tight leading-tight">
+                Your Journey <br/>
+                <span class="text-primary bg-gradient-to-r from-primary via-primary-container to-blue-500 bg-clip-text text-transparent">
+                  Starts Here.
+                </span>
+              </h1>
+
+              <p class="text-base sm:text-lg text-on-surface-variant mt-4 max-w-xl leading-relaxed">
+                Discover amazing heritage spots, sacred ghats, and hidden culinary gems around you with effortless zero-backtrack route orchestration.
+              </p>
+
+              <!-- Quick Search & Planning Card -->
+              <div class="mt-8 bg-surface-container-lowest rounded-2xl p-6 shadow-xl shadow-on-surface/5 flex flex-col gap-5 border border-outline-variant/30">
+                <!-- Location Sector -->
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs uppercase tracking-wider font-bold text-on-surface">Where are you going?</label>
+                  <div class="flex flex-col sm:flex-row gap-2">
+                    <div class="relative flex-1">
+                      <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                      <input 
+                        id="hero-dest-input" 
+                        type="text" 
+                        class="w-full h-12 pl-10 pr-4 rounded-lg bg-surface text-on-surface font-medium text-sm placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary/20 border border-outline-variant/40 transition-all" 
+                        placeholder="e.g., Patna, Varanasi, Jaipur, Delhi..." 
+                        value="Patna, Bihar"
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      onclick="YatraApp.showToast('Acquired GPS coordinates for Patna city center')" 
+                      class="h-12 px-4 rounded-lg bg-surface-low hover:bg-surface-container text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0"
+                    >
+                      <span class="material-symbols-outlined text-primary text-[18px]">my_location</span>
+                      <span>Use My GPS</span>
+                    </button>
+                    <button 
+                      id="hero-explore-btn" 
+                      type="button" 
+                      class="h-12 px-6 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all shrink-0 active:scale-95"
+                    >
+                      <span>Explore Nearby</span>
+                      <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quick Trip Preferences Sub-Card -->
+                <div class="bg-surface-low rounded-xl p-4 flex flex-col gap-4 border border-outline-variant/30">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-on-surface flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-secondary text-[20px]">tune</span>
+                      What kind of Yatra are you planning?
+                    </span>
+                    <span class="text-[11px] text-on-surface-variant font-mono bg-surface-container px-2 py-0.5 rounded">
+                      Dynamic AI Curated
+                    </span>
+                  </div>
+
+                  <!-- Time Chips -->
+                  <div class="flex flex-col gap-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Duration</span>
+                    <div class="flex flex-wrap gap-2">
+                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">1 Hour</button>
+                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">2 Hours</button>
+                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">Half Day</button>
+                      <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Full Day</button>
+                    </div>
+                  </div>
+
+                  <!-- Budget Chips -->
+                  <div class="flex flex-col gap-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Per-Person Budget</span>
+                    <div class="flex flex-wrap gap-2">
+                      <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Free</button>
+                      <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹500</button>
+                      <button class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">₹1,000</button>
+                      <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹2,500+</button>
+                    </div>
+                  </div>
+
+                  <!-- Interests Chips -->
+                  <div class="flex flex-col gap-1.5">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Interests & Mood</span>
+                    <div class="flex flex-wrap gap-2">
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
+                        <span>🏛️</span> History
+                      </span>
+                      <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container text-on-surface flex items-center gap-1">
+                        <span>🌿</span> Nature
+                      </span>
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
+                        <span>🍛</span> Food
+                      </span>
+                      <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
+                        <span>🎭</span> Culture
+                      </span>
+                      <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest text-on-surface flex items-center gap-1">
+                        <span>⚡</span> Adventure
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Quick Submit -->
+                  <button 
+                    id="hero-create-yatra-btn" 
+                    type="button" 
+                    class="mt-1 w-full h-12 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.99]"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                    <span>Create My Yatra</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Interactive Collage & Optimal Route Preview Graphic -->
+            <div class="lg:col-span-5 relative mt-6 lg:mt-0">
+              <div class="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-surface-container-lowest aspect-[4/5] flex flex-col justify-between border border-outline-variant/30 group">
+                
+                <!-- Autoplaying Cinematic Animated Video Background -->
+                <video 
+                  class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 pointer-events-none"
+                  autoplay 
+                  loop 
+                  muted 
+                  playsinline 
+                  poster="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1000&q=80"
+                >
+                  <source src="https://pixabay.com/videos/download/video-24541_medium.mp4" type="video/mp4">
+                  <source src="assets/videos/hero_corridor.webm" type="video/webm">
+                  <!-- Fallback Image if video is unsupported -->
+                  <img src="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1000&q=80" alt="Patna Riverfront" class="w-full h-full object-cover"/>
+                </video>
+                
+                <!-- Ambient Dark Scrim Gradient -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
+
+                <!-- Optimal Path Route Overlay Header -->
+                <div class="relative z-10 p-4 m-4 rounded-xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-lg border border-white/40">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-extrabold text-primary uppercase tracking-widest">Optimal Path Preview</span>
+                    <span class="text-[11px] font-bold text-secondary bg-secondary-fixed px-2 py-0.5 rounded-full">Zero Backtrack</span>
+                  </div>
+
+                  <div class="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-200">
+                    <div class="flex items-center gap-1">
+                      <span class="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">1</span>
+                      <span>Golghar</span>
+                    </div>
+                    <span class="material-symbols-outlined text-outline text-[16px]">arrow_forward</span>
+                    <div class="flex items-center gap-1">
+                      <span class="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">2</span>
+                      <span>Sabhyata Dwar</span>
+                    </div>
+                    <span class="material-symbols-outlined text-outline text-[16px]">arrow_forward</span>
+                    <div class="flex items-center gap-1">
+                      <span class="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">3</span>
+                      <span>Museum</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bottom Caption on Hero Card -->
+                <div class="relative z-10 p-6 text-white">
+                  <span class="text-xs font-bold text-amber-300 uppercase tracking-widest">Featured Corridor</span>
+                  <h3 class="font-display font-extrabold text-2xl mt-1">Patna Riverfront & Mauryan Heritage</h3>
+                  <p class="text-xs text-slate-200 mt-1 line-clamp-2">
+                    4 curated stops along the historic Ganga corridor with live transit orchestration and verified crowd pacing.
+                  </p>
+                  <div class="flex items-center gap-3 mt-4">
+                    <a href="#itinerary" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg transition-colors shadow">
+                      Explore This Yatra
+                    </a>
+                    <span class="text-xs text-slate-300">4.2★ Rated (1.2k completed)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURED YATRAS SECTION -->
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="flex items-end justify-between mb-8">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-primary">Precomputed Corridors</span>
+            <h2 class="font-display text-2xl sm:text-3xl font-bold text-on-surface mt-1">Curated Yatras for You</h2>
+          </div>
+          <a href="#planner" class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+            <span>Customise With AI</span>
+            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Curated Card 1 -->
+          <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-outline-variant/30 flex flex-col group">
+            <div class="relative h-44 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=600&q=80" alt="Patna" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <span class="absolute top-3 left-3 bg-primary text-white text-[11px] font-bold px-2 py-0.5 rounded shadow">
+                Patna • 4h 15m
+              </span>
+            </div>
+            <div class="p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Most Popular</span>
+                <h3 class="font-bold text-base text-on-surface mt-0.5">Patna Imperial & Riverfront Trail</h3>
+                <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">Golghar, Sabhyata Dwar, Bihar Museum, and Maurya Lok street food trail.</p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-surface-container flex items-center justify-between">
+                <span class="text-xs font-bold text-on-surface">₹650 spend</span>
+                <a href="#itinerary" class="text-xs font-bold text-primary hover:underline">View Yatra →</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Curated Card 2 -->
+          <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-outline-variant/30 flex flex-col group">
+            <div class="relative h-44 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1561361513-2d000a50f0dc?auto=format&fit=crop&w=600&q=80" alt="Varanasi" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <span class="absolute top-3 left-3 bg-primary text-white text-[11px] font-bold px-2 py-0.5 rounded shadow">
+                Varanasi • 6h 30m
+              </span>
+            </div>
+            <div class="p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Spiritual Aarti</span>
+                <h3 class="font-bold text-base text-on-surface mt-0.5">Eternal Varanasi: Dawn to Dusk</h3>
+                <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">Assi sunrise yoga, Kashi Vishwanath corridor, Sarnath, and Dashashwamedh Maha Aarti.</p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-surface-container flex items-center justify-between">
+                <span class="text-xs font-bold text-on-surface">₹450 spend</span>
+                <button onclick="YatraApp.setCity('varanasi'); YatraApp.switchView('explore');" class="text-xs font-bold text-primary hover:underline">Explore Spots →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Curated Card 3 -->
+          <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-outline-variant/30 flex flex-col group">
+            <div class="relative h-44 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=600&q=80" alt="Jaipur" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <span class="absolute top-3 left-3 bg-primary text-white text-[11px] font-bold px-2 py-0.5 rounded shadow">
+                Jaipur • 5h 45m
+              </span>
+            </div>
+            <div class="p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Royal Fortresses</span>
+                <h3 class="font-bold text-base text-on-surface mt-0.5">Pink City Palaces & Nahargarh</h3>
+                <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">Hawa Mahal jharokhas, City Palace, Amber Fort mirror hall, and Nahargarh sunset ramparts.</p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-surface-container flex items-center justify-between">
+                <span class="text-xs font-bold text-on-surface">₹850 spend</span>
+                <button onclick="YatraApp.setCity('jaipur'); YatraApp.switchView('explore');" class="text-xs font-bold text-primary hover:underline">Explore Spots →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Curated Card 4 -->
+          <div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-outline-variant/30 flex flex-col group">
+            <div class="relative h-44 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=600&q=80" alt="Delhi" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+              <span class="absolute top-3 left-3 bg-primary text-white text-[11px] font-bold px-2 py-0.5 rounded shadow">
+                Delhi • 5h 00m
+              </span>
+            </div>
+            <div class="p-4 flex-1 flex flex-col justify-between">
+              <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Mughal Epoch</span>
+                <h3 class="font-bold text-base text-on-surface mt-0.5">Imperial Delhi & Heritage Gardens</h3>
+                <p class="text-xs text-on-surface-variant mt-1 line-clamp-2">Red Fort bastions, Chandni Chowk food walk, Humayun's tomb charbagh, and Qutub Minar.</p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-surface-container flex items-center justify-between">
+                <span class="text-xs font-bold text-on-surface">₹550 spend</span>
+                <button onclick="YatraApp.setCity('delhi'); YatraApp.switchView('explore');" class="text-xs font-bold text-primary hover:underline">Explore Spots →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTELLIGENT FEATURES STRIP -->
+      <section class="bg-surface-container-low py-16 border-y border-outline-variant/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center max-w-2xl mx-auto mb-12">
+            <span class="text-xs font-bold uppercase tracking-wider text-primary">State of the Art Travel Intelligence</span>
+            <h2 class="font-display text-3xl font-bold text-on-surface mt-1">Why Travelers Choose YATRA</h2>
+            <p class="text-sm text-on-surface-variant mt-2">Every feature is designed to eliminate friction, save hours in traffic, and unlock authentic cultural memories.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Feature 1 -->
+            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/30">
+              <div class="w-12 h-12 rounded-lg bg-primary-fixed text-primary flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-[24px]">alt_route</span>
+              </div>
+              <h4 class="font-bold text-base text-on-surface">Zero-Backtrack Engine</h4>
+              <p class="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                Graph-optimized routing orders your checkpoints sequentially along natural corridors, eliminating redundant travel.
+              </p>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/30">
+              <div class="w-12 h-12 rounded-lg bg-secondary-fixed text-secondary flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-[24px]">groups</span>
+              </div>
+              <h4 class="font-bold text-base text-on-surface">Live Crowd Radar</h4>
+              <p class="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                Hourly footfall prediction forecasts queue wait times and advises the optimal arrival hour for every monument.
+              </p>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/30">
+              <div class="w-12 h-12 rounded-lg bg-primary-fixed text-primary flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-[24px]">payments</span>
+              </div>
+              <h4 class="font-bold text-base text-on-surface">Budget Orchestration</h4>
+              <p class="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                Automatically balances entry fees, local auto/rickshaw fares, and authentic food stops to remain strictly within your budget target.
+              </p>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline-variant/30">
+              <div class="w-12 h-12 rounded-lg bg-secondary-fixed text-secondary flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-[24px]">turn_sharp_right</span>
+              </div>
+              <h4 class="font-bold text-base text-on-surface">Turn-by-Turn Guidance</h4>
+              <p class="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                Integrated real-time GPS navigation with multimodal transfers, walking directions through historic alleys, and audio highlights.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TRAVELER STORIES / SOCIAL PROOF -->
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="bg-surface-container-lowest rounded-2xl p-8 sm:p-12 shadow-sm border border-outline-variant/30 flex flex-col lg:flex-row items-center gap-10">
+          <div class="w-32 h-32 sm:w-48 sm:h-48 rounded-2xl overflow-hidden shrink-0 shadow-md border-2 border-primary/20">
+            <img src="assets/images/traveler.png" alt="Traveler" class="w-full h-full object-cover">
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center gap-1 text-amber-500 mb-2">
+              <span class="material-symbols-outlined text-[20px] fill-1">star</span>
+              <span class="material-symbols-outlined text-[20px] fill-1">star</span>
+              <span class="material-symbols-outlined text-[20px] fill-1">star</span>
+              <span class="material-symbols-outlined text-[20px] fill-1">star</span>
+              <span class="material-symbols-outlined text-[20px] fill-1">star</span>
+            </div>
+            <blockquote class="text-base sm:text-lg text-on-surface font-medium italic leading-relaxed">
+              "YATRA transformed our weekend in Patna! Rather than getting stuck in Gandhi Maidan traffic, the zero-backtrack routing guided us from Golghar straight to the Bihar Museum corten pavilion with zero stress. The street food tip for Litti Chokha was pure gold!"
+            </blockquote>
+            <div class="mt-4">
+              <div class="font-bold text-sm text-on-surface">Aarav Sharma & Family</div>
+              <div class="text-xs text-on-surface-variant">Verified Heritage Traveler • Explored 8 Yatras</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- =======================================================================
+         VIEW 2: EXPLORE PLACES & INTERACTIVE MAP
+         ======================================================================= -->
+    <div id="view-explore" class="view-section">
+      <!-- Explore Command Bar -->
+      <section class="w-full bg-surface-container-lowest px-4 sm:px-6 lg:px-8 py-4 border-b border-outline-variant/30 shadow-sm sticky top-20 z-20">
+        <div class="max-w-7xl mx-auto flex flex-col gap-4">
+          <!-- Top Title & Location Ribbon -->
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 class="font-display font-extrabold text-2xl text-on-surface">Explore Places</h1>
+              <p class="text-xs text-on-surface-variant mt-0.5">Curated destinations, architectural landmarks, & real-time operational status</p>
+            </div>
+            <div class="flex items-center gap-2 bg-surface-low px-3 py-1.5 rounded-full border border-outline-variant/30">
+              <span class="material-symbols-outlined text-primary text-[18px]">near_me</span>
+              <span class="active-city-name text-xs font-bold text-on-surface">Patna, Bihar</span>
+              <span class="text-outline-variant text-[12px]">•</span>
+              <button onclick="YatraApp.showToast('Select another city from the top navigation bar')" class="text-xs font-bold text-primary hover:underline">
+                Change City
+              </button>
+            </div>
+          </div>
+
+          <!-- Search & Proximity Radius Controls -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+            <div class="lg:col-span-8 relative">
+              <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+              <input 
+                id="explore-search-input" 
+                type="text" 
+                class="w-full h-11 pl-10 pr-4 rounded-lg bg-surface-low text-on-surface text-xs font-medium placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest border border-outline-variant/30 transition-all" 
+                placeholder="Search monuments, temples, museums, culinary trails, or parks..."
+              />
+            </div>
+            <div class="lg:col-span-4 flex items-center justify-start lg:justify-end gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Radius:</span>
+              <div class="inline-flex p-1 bg-surface-low rounded-lg gap-1 border border-outline-variant/30">
+                <button data-radius-pill="5" class="px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors">5 KM</button>
+                <button data-radius-pill="10" class="px-3 py-1 rounded text-xs font-semibold bg-primary text-white shadow-sm">10 KM</button>
+                <button data-radius-pill="20" class="px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors">20 KM</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Category Filter Pills -->
+          <div class="flex items-center justify-between gap-4 overflow-x-auto pb-1">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button data-category-pill="all" class="px-3 py-1.5 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                <span>All</span>
+              </button>
+              <button data-category-pill="history" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                🏛️ History
+              </button>
+              <button data-category-pill="culture" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                🎭 Culture
+              </button>
+              <button data-category-pill="nature" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                🌿 Nature
+              </button>
+              <button data-category-pill="food" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                🍛 Street Food
+              </button>
+              <button data-category-pill="adventure" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-colors">
+                ⚡ Adventure
+              </button>
+            </div>
+            
+            <div class="flex items-center gap-2 text-xs font-medium text-on-surface-variant shrink-0">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span id="explore-count-indicator" class="font-bold text-on-surface">32 places found</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Split Viewport -->
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <!-- Left Column: Places Cards (7 Cols) -->
+          <div class="lg:col-span-7 flex flex-col gap-4 max-h-[calc(100vh-280px)] overflow-y-auto pr-1" id="explore-places-list">
+            <!-- Dynamic place cards will render here via YatraApp.renderExploreList -->
+          </div>
+
+          <!-- Right Column: Interactive Spatial Map Canvas (5 Cols) -->
+          <div class="lg:col-span-5 sticky top-52">
+            <div class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-md border border-outline-variant/30 flex flex-col">
+              <!-- Map Canvas Header with Layer Toggles -->
+              <div class="px-4 py-3 bg-surface-low border-b border-outline-variant/30 flex items-center justify-between">
+                <span class="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-primary text-[18px]">map</span>
+                  Spatial Live Radar
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="YatraMap.setTileLayer('streets')" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-container text-on-surface hover:bg-surface-container-high">
+                    Streets
+                  </button>
+                  <button onclick="YatraMap.setTileLayer('satellite')" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-container text-on-surface hover:bg-surface-container-high">
+                    Satellite
+                  </button>
+                  <button onclick="YatraMap.setTileLayer('light')" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-surface-container text-on-surface hover:bg-surface-container-high">
+                    Light
+                  </button>
+                </div>
+              </div>
+
+              <!-- Map Mount Container -->
+              <div id="map-canvas" class="h-[520px] w-full"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- =======================================================================
+         VIEW 3: AI TRIP PLANNER
+         ======================================================================= -->
+    <div id="view-planner" class="view-section">
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <!-- Top Section: Header & AI Flow Tracker -->
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
+          <div class="max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container text-primary text-xs font-bold mb-3">
+              <span class="material-symbols-outlined text-[16px]">neurology</span>
+              <span>AI Itinerary Architect v2.4</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            </div>
+            <h1 class="font-display font-extrabold text-3xl sm:text-4xl text-on-surface tracking-tight">
+              Create Your <span class="text-primary">Yatra</span>
+            </h1>
+            <p class="text-sm text-on-surface-variant mt-2">
+              Tell us your schedule, mood, and budget. Our route engine balances pacing, ticket queues, and local corridors in seconds.
+            </p>
+          </div>
+
+          <!-- Flow Metric Card -->
+          <div class="bg-surface-container-lowest p-4 rounded-xl shadow-sm border border-outline-variant/30 flex flex-col gap-2 min-w-[280px]">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-on-surface-variant uppercase tracking-wider">AI Optimizer</span>
+              <span class="font-extrabold text-primary">Ready to Compute</span>
+            </div>
+            <div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+              <div class="bg-primary h-full rounded-full w-full"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] text-on-surface-variant">
+              <span>Zero-Backtrack Corridor</span>
+              <span class="text-secondary font-bold">100% Transit Coordinated</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Planning Configuration Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div class="lg:col-span-8 flex flex-col gap-6">
+
+            <!-- STEP 1: Location & Coordinates -->
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <span class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-sm">1</span>
+                  <div>
+                    <h3 class="font-bold text-base text-on-surface">Where are you?</h3>
+                    <p class="text-xs text-on-surface-variant">Starting coordinate for precision zero-backtrack corridor routing</p>
+                  </div>
+                </div>
+                <span class="text-xs font-semibold text-primary bg-primary-fixed/60 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[14px]">verified</span>
+                  Verified Radius
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                <div class="sm:col-span-8 relative">
+                  <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-primary text-[20px]">explore</span>
+                  <input 
+                    type="text" 
+                    id="planner-city-input"
+                    class="w-full h-11 pl-11 pr-4 rounded-lg bg-surface text-on-surface text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 border border-outline-variant/40" 
+                    value="Patna, Bihar (Gandhi Maidan Hub)"
+                  />
+                </div>
+                <div class="sm:col-span-4">
+                  <button 
+                    type="button" 
+                    onclick="YatraApp.showToast('GPS localized to current hub: Patna')"
+                    class="w-full h-11 px-4 bg-surface-container hover:bg-surface-container-high text-primary rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span class="material-symbols-outlined text-[16px]">my_location</span>
+                    <span>Use My GPS</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- STEP 2: Time Allocation -->
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30">
+              <div class="flex items-center gap-3 mb-4">
+                <span class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center font-bold text-sm">2</span>
+                <div>
+                  <h3 class="font-bold text-base text-on-surface">How much time do you have?</h3>
+                  <p class="text-xs text-on-surface-variant">Pacing automatically accounts for parking, queues, & transit transfers</p>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button data-planner-duration="1-hour" type="button" class="flex flex-col items-center justify-center p-4 rounded-xl bg-surface hover:bg-surface-container transition-all text-center border border-outline-variant/30">
+                  <span class="font-bold text-base text-on-surface">1 Hour</span>
+                  <span class="text-[11px] text-on-surface-variant mt-0.5">Express Dash (2 spots)</span>
+                </button>
+                <button data-planner-duration="2-hour" type="button" class="flex flex-col items-center justify-center p-4 rounded-xl bg-surface hover:bg-surface-container transition-all text-center border border-outline-variant/30">
+                  <span class="font-bold text-base text-on-surface">2 Hours</span>
+                  <span class="text-[11px] text-on-surface-variant mt-0.5">Short Loop (3 spots)</span>
+                </button>
+                <button data-planner-duration="half-day" type="button" class="flex flex-col items-center justify-center p-4 rounded-xl bg-primary text-white transition-all text-center shadow-sm border border-primary">
+                  <span class="font-bold text-base">Half Day</span>
+                  <span class="text-[11px] text-blue-100 mt-0.5">Optimal (4-5 spots)</span>
+                </button>
+                <button data-planner-duration="full-day" type="button" class="flex flex-col items-center justify-center p-4 rounded-xl bg-surface hover:bg-surface-container transition-all text-center border border-outline-variant/30">
+                  <span class="font-bold text-base text-on-surface">Full Day</span>
+                  <span class="text-[11px] text-on-surface-variant mt-0.5">Deep Explorer (6+ spots)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 3: Budget Setting -->
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                  <span class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center font-bold text-sm">3</span>
+                  <div>
+                    <h3 class="font-bold text-base text-on-surface">Per-Person Budget Limit</h3>
+                    <p class="text-xs text-on-surface-variant">Includes monument entry tickets, e-rickshaws, and refreshments</p>
+                  </div>
+                </div>
+                <span id="planner-budget-display" class="text-lg font-extrabold text-secondary bg-secondary-fixed px-3 py-1 rounded-lg">
+                  ₹1,000
+                </span>
+              </div>
+
+              <input 
+                id="planner-budget-slider" 
+                type="range" 
+                min="300" 
+                max="5000" 
+                step="100" 
+                value="1000"
+                class="w-full accent-primary h-2 bg-surface-container rounded-lg cursor-pointer"
+              />
+
+              <div class="flex justify-between text-xs text-on-surface-variant mt-2 font-medium">
+                <span>₹300 (Budget)</span>
+                <span>₹1,500 (Comfort)</span>
+                <span>₹5,000 (Luxury)</span>
+              </div>
+            </div>
+
+            <!-- STEP 4: Interests & Vibes -->
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30">
+              <div class="flex items-center gap-3 mb-4">
+                <span class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center font-bold text-sm">4</span>
+                <div>
+                  <h3 class="font-bold text-base text-on-surface">Interests & Mood</h3>
+                  <p class="text-xs text-on-surface-variant">Select all categories you wish to experience</p>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-2.5">
+                <button data-planner-interest="history" type="button" class="px-4 py-2 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1.5 transition-all">
+                  <span>🏛️</span> Ancient History & Architecture
+                </button>
+                <button data-planner-interest="culture" type="button" class="px-4 py-2 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1.5 transition-all">
+                  <span>🎭</span> Spiritual Seats & Culture
+                </button>
+                <button data-planner-interest="food" type="button" class="px-4 py-2 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1.5 transition-all">
+                  <span>🍛</span> Authentic Street Food
+                </button>
+                <button data-planner-interest="nature" type="button" class="px-4 py-2 rounded-full text-xs font-semibold bg-surface-container-lowest text-on-surface border border-outline-variant/30 hover:bg-surface-container flex items-center gap-1.5 transition-all">
+                  <span>🌿</span> Riverfronts & Parks
+                </button>
+                <button data-planner-interest="adventure" type="button" class="px-4 py-2 rounded-full text-xs font-semibold bg-surface-container-lowest text-on-surface border border-outline-variant/30 hover:bg-surface-container flex items-center gap-1.5 transition-all">
+                  <span>⚡</span> Scenic Viewpoints
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 5 & 6: Pace & Companions -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="w-7 h-7 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center font-bold text-xs">5</span>
+                  <h4 class="font-bold text-sm text-on-surface">Travel Pace</h4>
+                </div>
+                <div class="flex flex-col gap-2 text-xs">
+                  <label class="flex items-center gap-2 p-2.5 rounded-lg bg-surface hover:bg-surface-container cursor-pointer">
+                    <input type="radio" name="pace" value="relaxed" class="accent-primary"/>
+                    <span><strong>Relaxed:</strong> More time at each spot</span>
+                  </label>
+                  <label class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container cursor-pointer font-bold">
+                    <input type="radio" name="pace" value="balanced" checked class="accent-primary"/>
+                    <span><strong>Balanced:</strong> Recommended flow</span>
+                  </label>
+                  <label class="flex items-center gap-2 p-2.5 rounded-lg bg-surface hover:bg-surface-container cursor-pointer">
+                    <input type="radio" name="pace" value="fast" class="accent-primary"/>
+                    <span><strong>Fast-Paced:</strong> Maximize spot count</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline-variant/30">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="w-7 h-7 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center font-bold text-xs">6</span>
+                  <h4 class="font-bold text-sm text-on-surface">Who's Traveling?</h4>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <button data-planner-companion="solo" type="button" class="p-2.5 rounded-lg bg-primary text-white font-bold text-center">Solo Traveler</button>
+                  <button data-planner-companion="couple" type="button" class="p-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container text-center border border-outline-variant/30">Couple</button>
+                  <button data-planner-companion="family" type="button" class="p-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container text-center border border-outline-variant/30">Family with Kids</button>
+                  <button data-planner-companion="friends" type="button" class="p-2.5 rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container text-center border border-outline-variant/30">Friends Group</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit CTA -->
+            <button 
+              id="planner-submit-btn" 
+              type="button" 
+              class="w-full h-14 rounded-xl bg-primary hover:bg-primary-hover text-white font-display font-bold text-base flex items-center justify-center gap-2 shadow-xl transition-transform active:scale-[0.99]"
+            >
+              <span class="material-symbols-outlined text-[22px]">auto_awesome</span>
+              <span>Generate Smart Yatra</span>
+            </button>
+
+          </div>
+
+          <!-- Right: AI Guarantee / Summary Card -->
+          <div class="lg:col-span-4 sticky top-28">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-md border border-outline-variant/30 flex flex-col gap-4">
+              <div class="flex items-center gap-2 text-primary font-bold text-sm">
+                <span class="material-symbols-outlined text-[20px]">verified_user</span>
+                <span>The YATRA Intelligence Promise</span>
+              </div>
+              <p class="text-xs text-on-surface-variant leading-relaxed">
+                Our algorithm runs hundreds of permutations along your route. We verify that all historical sites are open, align transit modes to traffic patterns, and optimize sequencing to minimize unnecessary backtrack.
+              </p>
+              
+              <div class="p-3 bg-surface-low rounded-xl text-xs flex flex-col gap-2 border border-outline-variant/30">
+                <div class="flex items-center justify-between font-bold">
+                  <span>Routing Accuracy:</span>
+                  <span class="text-emerald-600">99.4%</span>
+                </div>
+                <div class="flex items-center justify-between font-bold">
+                  <span>Avg Time Saved:</span>
+                  <span class="text-primary">42 mins / trip</span>
+                </div>
+                <div class="flex items-center justify-between font-bold">
+                  <span>Zero-Backtrack:</span>
+                  <span class="text-secondary">Guaranteed</span>
+                </div>
+              </div>
+
+              <div class="text-[11px] text-on-surface-variant italic">
+                * All itineraries can be customized on the next screen by dragging, swapping, or deleting stops.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- =======================================================================
+         VIEW 4: RECOMMENDED ITINERARY
+         ======================================================================= -->
+    <div id="view-itinerary" class="view-section">
+      <!-- Top Command Strip -->
+      <section class="w-full bg-surface-container-lowest shadow-sm border-b border-outline-variant/30 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-6">
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-secondary-fixed text-secondary font-bold text-xs">
+                  <span class="material-symbols-outlined text-[15px]">bolt</span>
+                  100% Route Optimized • All Stops Open Today
+                </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant text-xs font-semibold">
+                  <span class="material-symbols-outlined text-[14px]">auto_awesome</span>
+                  Curated by YATRA Intelligence
+                </span>
+              </div>
+              <h1 id="itinerary-title" class="font-display font-extrabold text-3xl text-on-surface tracking-tight mt-1.5">
+                Patna Imperial & Riverfront Trail
+              </h1>
+              <p id="itinerary-subtitle" class="text-xs sm:text-sm text-on-surface-variant mt-0.5">
+                Half Day (4.5 hrs) • History, Culture, Food
+              </p>
+            </div>
+
+            <!-- Global Action Group -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="YatraApp.saveCurrentTrip()" class="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[17px]">bookmark</span>
+                <span>Save Trip</span>
+              </button>
+              <button onclick="YatraApp.openShareModal()" class="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[17px]">share</span>
+                <span>Share</span>
+              </button>
+              <button onclick="YatraApp.switchView('planner')" class="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[17px]">tune</span>
+                <span>Customize</span>
+              </button>
+              <button onclick="YatraApp.startNavigationSimulation()" class="inline-flex items-center gap-1.5 h-10 px-5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-md active:scale-95">
+                <span>Start Yatra</span>
+                <span class="material-symbols-outlined text-[18px]">near_me</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Highlight Summary Metrics Ribbon -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Duration Card -->
+            <div class="bg-surface-low p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Total Duration</span>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                  <span id="metric-duration" class="font-display font-extrabold text-2xl text-on-surface">4h 15m</span>
+                  <span class="text-xs font-bold text-primary">On Schedule</span>
+                </div>
+                <p class="text-[11px] text-on-surface-variant mt-1">Includes 35m transit & walking buffers</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-[20px]">schedule</span>
+              </div>
+            </div>
+
+            <!-- Spend Card -->
+            <div class="bg-surface-low p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Estimated Spend</span>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                  <span id="metric-spend" class="font-display font-extrabold text-2xl text-secondary">₹650</span>
+                  <span id="metric-spend-max" class="text-xs text-on-surface-variant">of ₹1,000 budget</span>
+                </div>
+                <p class="text-[11px] text-on-surface-variant mt-1">Entry tickets + Transit fares + Refreshment</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center text-secondary">
+                <span class="material-symbols-outlined text-[20px]">payments</span>
+              </div>
+            </div>
+
+            <!-- Distance Card -->
+            <div class="bg-surface-low p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Curated Loop</span>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                  <span id="metric-distance" class="font-display font-extrabold text-2xl text-on-surface">8.2 km</span>
+                  <span class="text-xs font-bold text-primary">Zero Backtrack</span>
+                </div>
+                <p class="text-[11px] text-on-surface-variant mt-1">Sequential corridor along central arterial route</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-[20px]">alt_route</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Primary Content Grid: Stops Timeline & Spatial Route Map -->
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Left Column: Stop-by-Stop Timeline (7 Cols) -->
+          <div class="lg:col-span-7">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-4 flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-primary text-[18px]">timeline</span>
+              Sequential Route Timeline
+            </h3>
+
+            <div class="timeline-track flex flex-col" id="itinerary-timeline-stops">
+              <!-- Rendered via YatraApp.renderItineraryView -->
+            </div>
+          </div>
+
+          <!-- Right Column: Interactive Route Map (5 Cols) -->
+          <div class="lg:col-span-5 sticky top-28">
+            <div class="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-md border border-outline-variant/30 flex flex-col">
+              <div class="p-4 bg-surface-low border-b border-outline-variant/30 flex items-center justify-between">
+                <span class="text-xs font-bold text-on-surface flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-primary text-[18px]">route</span>
+                  Route Map & Checkpoints
+                </span>
+                <span class="text-[11px] font-bold text-secondary bg-secondary-fixed px-2 py-0.5 rounded-full">
+                  100% Zero-Backtrack
+                </span>
+              </div>
+              
+              <div id="itinerary-map" class="h-[480px] w-full"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- =======================================================================
+         VIEW 5: MY TRIPS / SAVED LIBRARY
+         ======================================================================= -->
+    <div id="view-mytrips" class="view-section">
+      <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="font-display font-extrabold text-3xl text-on-surface">My Saved Yatras</h1>
+            <p class="text-xs text-on-surface-variant mt-1">Access your saved itineraries, offline maps, and personalized trails</p>
+          </div>
+          <a href="#planner" class="px-4 py-2 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-hover transition-colors shadow">
+            + Plan New Yatra
+          </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="my-trips-list">
+          <!-- Rendered via YatraApp.renderMyTripsView -->
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- =========================================================================
+       MODAL 1: PLACE DETAILS MODAL
+       ========================================================================= -->
+  <div id="place-detail-modal" class="modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="modal-content bg-surface-container-lowest w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-outline-variant/30 max-h-[90vh] flex flex-col">
+      <!-- Modal Header Image -->
+      <div class="relative h-56 w-full shrink-0">
+        <img id="modal-place-image" src="" alt="Place" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+        <button onclick="YatraApp.closePlaceModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/90">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+        <div class="absolute bottom-4 left-4 right-4 text-white">
+          <span id="modal-place-badge" class="px-2 py-0.5 bg-primary text-[10px] font-bold uppercase tracking-wider rounded">
+            Heritage
+          </span>
+          <h2 id="modal-place-title" class="font-display font-bold text-2xl mt-1">Place Name</h2>
+          <div class="flex items-center gap-2 text-xs text-slate-200 mt-1">
+            <span class="text-amber-400 font-bold">★ <span id="modal-place-rating">4.5</span></span>
+            <span id="modal-place-reviews">(2,500 reviews)</span>
+            <span>•</span>
+            <span id="modal-place-hours">Open Today</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 overflow-y-auto flex flex-col gap-5 text-on-surface">
+        <div>
+          <h4 class="font-bold text-xs uppercase tracking-wider text-on-surface-variant">Description</h4>
+          <p id="modal-place-desc" class="text-sm text-on-surface-variant mt-1 leading-relaxed"></p>
+        </div>
+
+        <!-- Key Highlights -->
+        <div>
+          <h4 class="font-bold text-xs uppercase tracking-wider text-on-surface-variant mb-2">Key Highlights</h4>
+          <ul id="modal-place-highlights" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></ul>
+        </div>
+
+        <!-- Live Crowd Radar Hourly Bar -->
+        <div class="bg-surface-low p-4 rounded-xl border border-outline-variant/30">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-on-surface flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-secondary text-[16px]">equalizer</span>
+              Hourly Crowd Density Radar (8 AM - 5 PM)
+            </span>
+            <span class="text-[11px] text-emerald-600 font-bold">Best time: 9:30 AM</span>
+          </div>
+          <div class="crowd-bar" id="modal-place-crowd-bars"></div>
+        </div>
+
+        <!-- Address & Pricing Info -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div class="p-3 bg-surface-low rounded-xl border border-outline-variant/30">
+            <span class="text-on-surface-variant font-bold">Location & Address</span>
+            <p id="modal-place-address" class="text-on-surface font-medium mt-1"></p>
+            <p id="modal-place-transit" class="text-primary font-bold mt-1"></p>
+          </div>
+          <div class="p-3 bg-surface-low rounded-xl border border-outline-variant/30">
+            <span class="text-on-surface-variant font-bold">Entry Fee & Local Food Tip</span>
+            <p id="modal-place-fee" class="text-on-surface font-bold mt-1 text-sm text-emerald-600"></p>
+            <p id="modal-place-food" class="text-secondary font-medium mt-1 italic"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-surface-low border-t border-outline-variant/30 flex items-center justify-between shrink-0">
+        <button onclick="YatraApp.closePlaceModal()" class="px-4 py-2 text-xs font-bold text-on-surface hover:bg-surface-container rounded-lg">
+          Close
+        </button>
+        <button id="modal-add-to-trip-btn" class="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow">
+          <span class="material-symbols-outlined text-[16px]">add_circle</span>
+          <span>Add to This Yatra</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: TURN-BY-TURN NAVIGATION SIMULATOR
+       ========================================================================= -->
+  <div id="nav-simulator-modal" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="modal-content bg-surface-container-lowest w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-outline-variant/30 flex flex-col">
+      <!-- Nav Top Status Strip -->
+      <div class="p-4 bg-primary text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="font-bold text-xs tracking-wider uppercase">Live Turn-by-Turn Guidance</span>
+        </div>
+        <button onclick="YatraApp.closeNavSimulation()" class="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <!-- Nav Guidance Prompt -->
+      <div class="p-6 flex flex-col items-center text-center">
+        <div class="w-16 h-16 rounded-2xl bg-primary-fixed text-primary flex items-center justify-center mb-4 shadow">
+          <span class="material-symbols-outlined text-[36px]">straight</span>
+        </div>
+        
+        <span id="nav-step-number" class="text-xs font-bold text-secondary uppercase tracking-wider">Stop 1 of 4</span>
+        <h3 id="nav-current-place" class="font-display font-extrabold text-2xl text-on-surface mt-1">Golghar</h3>
+        <p id="nav-instruction" class="text-sm text-on-surface-variant mt-2 max-w-sm">
+          Continue straight on main Ashok Rajpath corridor towards Golghar monument
+        </p>
+
+        <div class="grid grid-cols-2 gap-4 w-full mt-6 pt-4 border-t border-surface-container text-left">
+          <div class="p-3 bg-surface-low rounded-xl border border-outline-variant/30">
+            <span class="text-[11px] text-on-surface-variant font-bold">Estimated Arrival</span>
+            <div id="nav-eta" class="text-base font-extrabold text-on-surface mt-0.5">ETA: 09:30 AM</div>
+          </div>
+          <div class="p-3 bg-surface-low rounded-xl border border-outline-variant/30">
+            <span class="text-[11px] text-on-surface-variant font-bold">Distance Remaining</span>
+            <div id="nav-dist-remaining" class="text-base font-extrabold text-primary mt-0.5">1.2 km away</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav Simulator Actions -->
+      <div class="p-4 bg-surface-low border-t border-outline-variant/30 flex items-center justify-between">
+        <span class="text-xs text-on-surface-variant italic">Simulating active GPS movement...</span>
+        <button onclick="YatraApp.closeNavSimulation()" class="px-4 py-2 bg-on-surface text-white text-xs font-bold rounded-lg">
+          Exit Navigation
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: SHARE MODAL
+       ========================================================================= -->
+  <div id="share-modal" class="modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="modal-content bg-surface-container-lowest w-full max-w-md rounded-2xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-display font-bold text-lg text-on-surface">Share Your Yatra</h3>
+        <button onclick="YatraApp.closeShareModal()" class="w-7 h-7 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center">
+          <span class="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+      <p class="text-xs text-on-surface-variant">Send this optimized zero-backtrack trip to friends or print it as a physical travel itinerary.</p>
+      
+      <div class="flex items-center gap-2 p-2 bg-surface-low rounded-lg border border-outline-variant/30">
+        <input type="text" readonly value="https://yatra.travel/trips/patna-heritage-2026" class="w-full bg-transparent text-xs text-on-surface focus:outline-none"/>
+        <button onclick="YatraApp.copyShareLink()" class="px-3 py-1.5 bg-primary text-white text-xs font-bold rounded hover:bg-primary-hover shrink-0">
+          Copy
+        </button>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="window.print()" class="px-4 py-2 bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-bold rounded-lg flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">print</span>
+          <span>Print / PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: TRAVELER ACCOUNT / LOGIN MODAL
+       ========================================================================= -->
+  <div id="auth-modal" class="modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="modal-content bg-surface-container-lowest w-full max-w-md rounded-2xl p-6 shadow-2xl border border-outline-variant/30 flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-base text-on-surface">Traveler Portal</h3>
+            <p class="text-[11px] text-on-surface-variant">Sync your itineraries across devices</p>
+          </div>
+        </div>
+        <button onclick="YatraApp.closeAuthModal()" class="w-7 h-7 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center">
+          <span class="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+
+      <div class="flex flex-col gap-3 text-xs">
+        <div>
+          <label class="block text-on-surface-variant font-bold mb-1">Email or Phone</label>
+          <input type="text" value="traveler@yatra.in" class="w-full h-10 px-3 rounded-lg bg-surface text-on-surface border border-outline-variant/40 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+        </div>
+        <div>
+          <label class="block text-on-surface-variant font-bold mb-1">Passcode / OTP</label>
+          <input type="password" value="••••••••" class="w-full h-10 px-3 rounded-lg bg-surface text-on-surface border border-outline-variant/40 focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button onclick="YatraApp.closeAuthModal(); YatraApp.showToast('Welcome back, Aarav!');" class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-lg shadow transition-all">
+          Sign In / Register
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       TOAST NOTIFICATION COMPONENT
+       ========================================================================= -->
+  <div id="toast-notification" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3 rounded-full text-xs font-semibold shadow-2xl flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    Yatra notification message
+  </div>
+
+  <!-- =========================================================================
+       GLOBAL FOOTER
+       ========================================================================= -->
+  <footer class="w-full bg-surface-low border-t border-outline-variant/30 pt-12 pb-8 mt-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-2">
+            <span class="font-display font-extrabold text-xl text-primary uppercase">YATRA</span>
+          </div>
+          <p class="text-xs text-on-surface-variant leading-relaxed">
+            Intelligent travel discovery and zero-backtrack route orchestration platform designed for authentic cultural exploration.
+          </p>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-on-surface mb-3">Explore Cities</h4>
+          <ul class="flex flex-col gap-2 text-xs text-on-surface-variant">
+            <li><button onclick="YatraApp.setCity('patna')" class="hover:text-primary">Patna Heritage Corridor</button></li>
+            <li><button onclick="YatraApp.setCity('varanasi')" class="hover:text-primary">Varanasi Ganga Ghats</button></li>
+            <li><button onclick="YatraApp.setCity('jaipur')" class="hover:text-primary">Jaipur Royal Forts</button></li>
+            <li><button onclick="YatraApp.setCity('delhi')" class="hover:text-primary">Delhi Imperial Capital</button></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-on-surface mb-3">Platform</h4>
+          <ul class="flex flex-col gap-2 text-xs text-on-surface-variant">
+            <li><a href="#explore" class="hover:text-primary">Interactive Map</a></li>
+            <li><a href="#planner" class="hover:text-primary">AI Route Architect</a></li>
+            <li><a href="#itinerary" class="hover:text-primary">Zero-Backtrack Timeline</a></li>
+            <li><a href="#mytrips" class="hover:text-primary">Offline Library</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-on-surface mb-3">Technology</h4>
+          <p class="text-xs text-on-surface-variant leading-relaxed">
+            Engineered with Leaflet.js spatial engine, OpenStreetMap tile networks, and Google Stitch design system.
+          </p>
+          <div class="mt-3 flex items-center gap-2">
+            <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded">
+              v2.4 Production Ready
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-6 border-t border-outline-variant/30 flex flex-col sm:flex-row items-center justify-between text-xs text-on-surface-variant gap-2">
+        <p>© 2026 YATRA Intelligent Travel Platform. Built with Google Stitch design specifications.</p>
+        <p>Made with ❤️ for Indian Heritage & Culture.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Leaflet JS Library -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Application Logic -->
+  <script src="js/data.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/planner.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
