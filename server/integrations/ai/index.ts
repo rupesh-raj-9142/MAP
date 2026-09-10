@@ -6,11 +6,10 @@ let aiProviderInstance: AIProvider | null = null;
 
 export function getAIProvider(): AIProvider {
   if (!aiProviderInstance) {
-    const useMock = process.env.USE_MOCK_DATA === 'true' || !process.env.AI_API_KEY;
-    if (useMock) {
-      aiProviderInstance = new MockAIProvider();
-    } else {
+    if (process.env.AI_API_KEY && process.env.AI_API_KEY.trim().length > 0) {
       aiProviderInstance = new GeminiAIProvider();
+    } else {
+      aiProviderInstance = new MockAIProvider();
     }
   }
   return aiProviderInstance;

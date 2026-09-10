@@ -28,6 +28,31 @@ export class PlacesController {
     }
   };
 
+  /**
+   * AI-driven place discovery for any searched location or city
+   */
+  aiDiscover = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const location = (req.query.location || req.query.q || req.query.city) as string;
+      if (!location || location.trim().length === 0) {
+        sendError(res, 'INVALID_LOCATION', 'Location parameter is required for AI discovery', 400);
+        return;
+      }
+
+      const category = req.query.category as string | undefined;
+      const results = await this.placesService.discoverPlacesWithAI(location.trim(), category);
+
+      sendSuccess(res, {
+        results,
+        count: results.length,
+        location: location.trim(),
+        model: process.env.GEMINI_MODEL || 'gemini-3.6-flash'
+      });
+    } catch (err: any) {
+      sendError(res, 'AI_DISCOVERY_FAILED', err.message || 'AI place discovery failed', 500);
+    }
+  };
+
   getById = async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id;
@@ -52,8 +77,9 @@ export class PlacesController {
 
       const city = req.query.city as string | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+      const forceAi = req.query.ai === 'true';
 
-      const results = await this.placesService.searchPlaces(q.trim(), city, limit);
+      const results = await this.placesService.searchPlaces(q.trim(), city, limit, forceAi);
       sendSuccess(res, {
         results,
         count: results.length

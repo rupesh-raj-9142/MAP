@@ -59,6 +59,11 @@ const YatraApi = {
     if (city) q += `&city=${encodeURIComponent(city)}`;
     return this.request(q);
   },
+  async aiDiscoverPlaces(location, category) {
+    let q = `/places/ai-discover?location=${encodeURIComponent(location)}`;
+    if (category && category !== 'all') q += `&category=${encodeURIComponent(category)}`;
+    return this.request(q);
+  },
   async getPlaceDetails(id) {
     return this.request(`/places/${id}`);
   },
@@ -329,21 +334,52 @@ const YatraApp = (function() {
       });
     });
 
-    // Explore Search Input
+    // Explore Search Input with Debounce & Enter key trigger
     const searchInput = document.getElementById('explore-search-input');
     if (searchInput) {
+      let searchTimeout;
       searchInput.addEventListener('input', (e) => {
-        state.searchQuery = e.target.value.toLowerCase().trim();
-        renderExploreList();
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          state.searchQuery = e.target.value.trim();
+          renderExploreList();
+        }, 350);
+      });
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          clearTimeout(searchTimeout);
+          state.searchQuery = e.target.value.trim();
+          renderExploreList();
+        }
       });
     }
 
-    // Hero Search Form
+    // Hero Search Form & Explore Trigger
     const heroBtn = document.getElementById('hero-explore-btn');
+    const heroDestInput = document.getElementById('hero-dest-input');
     if (heroBtn) {
-      heroBtn.addEventListener('click', () => {
+      const handleHeroExplore = () => {
+        const query = heroDestInput ? heroDestInput.value.trim() : '';
+        if (query) {
+          state.searchQuery = query;
+          const expInput = document.getElementById('explore-search-input');
+          if (expInput) expInput.value = query;
+          showToast(`✨ YATRA AI: Finding famous places in "${query}"...`);
+        }
         window.location.hash = '#explore';
-      });
+        switchView('explore');
+      };
+
+      heroBtn.addEventListener('click', handleHeroExplore);
+      if (heroDestInput) {
+        heroDestInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            handleHeroExplore();
+          }
+        });
+      }
     }
 
     const heroPlanBtn = document.getElementById('hero-create-yatra-btn');
@@ -374,6 +410,9 @@ const YatraApp = (function() {
     if (!YATRA_CITIES[cityId]) return;
     state.activeCityId = cityId;
     state.plannerForm.cityId = cityId;
+    state.searchQuery = '';
+    const expInput = document.getElementById('explore-search-input');
+    if (expInput) expInput.value = '';
 
     // Update city name labels across DOM
     const cityName = YATRA_CITIES[cityId].name;
@@ -383,10 +422,10 @@ const YatraApp = (function() {
       el.textContent = `${cityName}, ${stateName}`;
     });
 
-    // Update explore & map
+    // Re-render explore and map
     renderExploreList();
-    if (state.currentView === 'explore') {
-      YatraMap.initExploreMap(cityId);
+    if (typeof YatraMap !== 'undefined' && YatraMap.renderExploreMarkers) {
+      YatraMap.renderExploreMarkers(cityId, state.selectedCategory, state.selectedRadius);
     }
 
     showToast(`Switched city to ${cityName}`);
@@ -400,22 +439,47 @@ const YatraApp = (function() {
     if (!listContainer) return;
 
     let places = YATRA_PLACES.filter(p => p.cityId === state.activeCityId);
+    let isLiveBackendResults = false;
 
-    // Fetch live nearby places from backend
+    // If user is actively searching a location, show an instant AI discovery indicator
+    if (state.searchQuery && state.searchQuery.length > 1) {
+      listContainer.innerHTML = `
+        <div class="bg-surface-container-lowest p-8 rounded-2xl text-center shadow-xs flex flex-col items-center gap-3 border border-outline-variant/30">
+          <div class="w-8 h-8 rounded-full border-3 border-primary border-t-transparent animate-spin"></div>
+          <h3 class="font-display font-bold text-base text-on-surface">Gemini AI is discovering famous places in "${state.searchQuery}"...</h3>
+          <p class="text-xs text-on-surface-variant">Gathering verified architectural landmarks, hours, entry fees, and crowd status.</p>
+        </div>
+      `;
+    }
+
+    // Fetch live nearby places or AI places from backend
     const cityCoord = YATRA_CITIES[state.activeCityId]?.coordinates || [25.5941, 85.1376];
     try {
       if (state.searchQuery) {
         const searchRes = await YatraApi.searchPlaces(state.searchQuery, YATRA_CITIES[state.activeCityId]?.name);
         if (searchRes?.results && searchRes.results.length > 0) {
+          isLiveBackendResults = true;
           places = searchRes.results.map(p => ({
             ...p,
             image: p.photos?.[0] || 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=800&q=80',
-            badge: p.badge || `${p.category.toUpperCase()} Landmark`,
-            entryFee: p.entryFee || 0,
+            badge: p.badge || `${(p.category || 'culture').toUpperCase()} Landmark`,
+            entryFee: typeof p.entryFee === 'number' ? p.entryFee : 0,
             dwellTimeMin: p.recommendedDuration || 45,
             lat: p.latitude,
             lng: p.longitude
           }));
+
+          // Register in local YATRA_PLACES cache
+          places.forEach(p => {
+            if (!YATRA_PLACES.some(yp => yp.id === p.id)) {
+              YATRA_PLACES.push(p);
+            }
+          });
+
+          // Update header city label if searching a specific location
+          document.querySelectorAll('.active-city-name').forEach(el => {
+            el.textContent = state.searchQuery;
+          });
         }
       } else {
         const nearbyRes = await YatraApi.getNearbyPlaces(
@@ -445,18 +509,24 @@ const YatraApp = (function() {
       places = places.filter(p => p.category === state.selectedCategory);
     }
 
-    // Filter by search query if offline
-    if (state.searchQuery) {
+    // Filter by search query only if using offline seed fallback
+    if (state.searchQuery && !isLiveBackendResults) {
+      const q = state.searchQuery.toLowerCase();
       places = places.filter(p => 
-        p.name.toLowerCase().includes(state.searchQuery) ||
-        p.description.toLowerCase().includes(state.searchQuery) ||
-        (p.badge && p.badge.toLowerCase().includes(state.searchQuery))
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        (p.badge && p.badge.toLowerCase().includes(q))
       );
     }
 
     const countIndicator = document.getElementById('explore-count-indicator');
     if (countIndicator) {
-      countIndicator.textContent = `${places.length} places found`;
+      countIndicator.textContent = `${places.length} places ${isLiveBackendResults ? 'discovered' : 'found'}`;
+    }
+
+    // Sync Leaflet map markers
+    if (typeof YatraMap !== 'undefined' && YatraMap.renderExploreMarkers) {
+      YatraMap.renderExploreMarkers(state.activeCityId, state.selectedCategory, state.selectedRadius, places);
     }
 
     if (places.length === 0) {
@@ -659,25 +729,45 @@ const YatraApp = (function() {
     }
   }
 
-  function triggerQuickPlan() {
+  async function triggerQuickPlan() {
     const cityInput = document.getElementById('hero-dest-input');
-    if (cityInput && cityInput.value.toLowerCase().includes('varanasi')) {
-      state.plannerForm.cityId = 'varanasi';
-    } else if (cityInput && cityInput.value.toLowerCase().includes('jaipur')) {
-      state.plannerForm.cityId = 'jaipur';
-    } else if (cityInput && cityInput.value.toLowerCase().includes('delhi')) {
-      state.plannerForm.cityId = 'delhi';
-    } else {
-      state.plannerForm.cityId = state.activeCityId || 'patna';
+    const inputVal = cityInput ? cityInput.value.trim() : '';
+
+    let customCity = null;
+    if (inputVal) {
+      state.searchQuery = inputVal;
+      const lower = inputVal.toLowerCase();
+      if (lower.includes('varanasi')) state.plannerForm.cityId = 'varanasi';
+      else if (lower.includes('jaipur')) state.plannerForm.cityId = 'jaipur';
+      else if (lower.includes('delhi')) state.plannerForm.cityId = 'delhi';
+      else if (lower.includes('mumbai')) state.plannerForm.cityId = 'mumbai';
+      else if (lower.includes('kolkata')) state.plannerForm.cityId = 'kolkata';
+      else if (lower.includes('patna')) state.plannerForm.cityId = 'patna';
+      else {
+        customCity = inputVal;
+      }
     }
 
-    generateTripFromForm();
+    generateTripFromForm(customCity);
   }
 
-  async function generateTripFromForm() {
-    showToast('AI Route Engine calculating zero-backtrack corridor...');
+  async function generateTripFromForm(customCityName = null) {
+    showToast('✨ YATRA AI: Calculating zero-backtrack corridor with Gemini 3.6 Flash...');
 
-    const city = YATRA_CITIES[state.plannerForm.cityId] || YATRA_CITIES.patna;
+    let cityName = customCityName || (YATRA_CITIES[state.plannerForm.cityId]?.name || 'Patna');
+    let coords = (YATRA_CITIES[state.plannerForm.cityId]?.coordinates) || [25.5941, 85.1376];
+
+    if (customCityName) {
+      try {
+        const disc = await YatraApi.searchPlaces(customCityName);
+        if (disc?.results && disc.results.length > 0) {
+          coords = [disc.results[0].latitude, disc.results[0].longitude];
+        }
+      } catch (e) {
+        console.warn('Custom location geocode fallback:', e);
+      }
+    }
+
     let availableTimeMinutes = 240;
     if (state.plannerForm.duration === '1-hour' || state.plannerForm.duration === 1) availableTimeMinutes = 60;
     else if (state.plannerForm.duration === '2-hour' || state.plannerForm.duration === 2) availableTimeMinutes = 120;
@@ -687,9 +777,9 @@ const YatraApp = (function() {
     try {
       const response = await YatraApi.planTrip({
         location: {
-          city: city.name,
-          latitude: city.coordinates[0],
-          longitude: city.coordinates[1]
+          city: cityName,
+          latitude: coords[0],
+          longitude: coords[1]
         },
         availableTimeMinutes,
         budget: state.plannerForm.budget || 1000,

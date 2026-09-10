@@ -8,4 +8,5 @@ export interface AIPlanContext {
 
 export interface AIProvider {
   generateTripPlan(context: AIPlanContext): Promise<AIPlanOutput>;
+  discoverPlaces?(locationQuery: string, category?: string): Promise<PlaceModel[]>;
 }

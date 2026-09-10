@@ -82,6 +82,7 @@ export function createApp(): express.Express {
 
   // 4. Places Routes
   app.get('/api/places/nearby', validateQuery(NearbyPlacesQuerySchema), placesCtrl.getNearby);
+  app.get('/api/places/ai-discover', placesCtrl.aiDiscover);
   app.get('/api/places/:id', placesCtrl.getById);
   app.get('/api/search', validateQuery(SearchPlacesQuerySchema), placesCtrl.search);
 

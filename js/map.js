@@ -89,14 +89,16 @@ const YatraMap = (function() {
   /**
    * Render category-filtered place markers on Explore Map
    */
-  function renderExploreMarkers(cityId, category = 'all', maxRadiusKm = 20) {
+  function renderExploreMarkers(cityId, category = 'all', maxRadiusKm = 20, customPlaces = null) {
     if (!exploreMap || !markersLayer) return;
 
     markersLayer.clearLayers();
     currentMarkers = {};
 
-    const city = YATRA_CITIES[cityId] || YATRA_CITIES.patna;
-    const places = YATRA_PLACES.filter(p => p.cityId === cityId && (category === 'all' || p.category === category));
+    let places = customPlaces;
+    if (!places || places.length === 0) {
+      places = YATRA_PLACES.filter(p => p.cityId === cityId && (category === 'all' || p.category === category));
+    }
 
     const bounds = L.latLngBounds();
 
