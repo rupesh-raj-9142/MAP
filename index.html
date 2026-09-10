@@ -237,7 +237,7 @@
         <div class="absolute -right-40 -top-40 w-96 h-96 rounded-full bg-primary-fixed/40 blur-3xl pointer-events-none"></div>
         <div class="absolute right-1/4 top-1/2 w-80 h-80 rounded-full bg-secondary-fixed/30 blur-3xl pointer-events-none"></div>
 
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center">
+        <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center">
           <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-surface-container-high w-fit mb-4 shadow-xs">
             <span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
             <span class="text-xs font-bold uppercase tracking-wider text-secondary">Smart Route Engine 2.0</span>
@@ -250,16 +250,16 @@
             </span>
           </h1>
 
-          <p class="text-base sm:text-lg text-on-surface-variant mt-4 max-w-2xl leading-relaxed">
+          <p class="text-base sm:text-lg text-on-surface-variant mt-4 max-w-3xl leading-relaxed">
             Discover amazing heritage spots, sacred ghats, and hidden culinary gems around you with effortless zero-backtrack route orchestration.
           </p>
 
-          <!-- Quick Search & Planning Card -->
-          <div class="mt-8 w-full bg-surface-container-lowest rounded-2xl p-6 sm:p-8 shadow-xl shadow-on-surface/5 flex flex-col gap-5 border border-outline-variant/30 text-left">
+          <!-- Quick Search & Planning Card (100% Full Width) -->
+          <div class="mt-8 w-full bg-surface-container-lowest rounded-2xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-on-surface/5 flex flex-col gap-6 border border-outline-variant/30 text-left">
             <!-- Location Sector -->
             <div class="flex flex-col gap-2">
               <label class="text-xs uppercase tracking-wider font-bold text-on-surface">Where are you going?</label>
-              <div class="flex flex-col sm:flex-row gap-2">
+              <div class="flex flex-col sm:flex-row gap-3">
                 <div class="relative flex-1">
                   <span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
                   <input 
@@ -273,7 +273,7 @@
                 <button 
                   type="button" 
                   onclick="YatraApp.showToast('Acquired GPS coordinates for Patna city center')" 
-                  class="h-12 px-4 rounded-lg bg-surface-low hover:bg-surface-container text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0"
+                  class="h-12 px-5 rounded-lg bg-surface-low hover:bg-surface-container text-on-surface text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shrink-0 cursor-pointer"
                 >
                   <span class="material-symbols-outlined text-primary text-[18px]">my_location</span>
                   <span>Use My GPS</span>
@@ -281,7 +281,7 @@
                 <button 
                   id="hero-explore-btn" 
                   type="button" 
-                  class="h-12 px-6 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md transition-all shrink-0 active:scale-95"
+                  class="h-12 px-8 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all shrink-0 active:scale-95 cursor-pointer"
                 >
                   <span>Explore Nearby</span>
                   <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -289,59 +289,62 @@
               </div>
             </div>
 
-            <!-- Quick Trip Preferences Sub-Card -->
-            <div class="bg-surface-low rounded-xl p-4 flex flex-col gap-4 border border-outline-variant/30">
-              <div class="flex items-center justify-between">
+            <!-- Quick Trip Preferences Sub-Card (Expanded Layout) -->
+            <div class="bg-surface-low rounded-xl p-5 sm:p-6 flex flex-col gap-5 border border-outline-variant/30">
+              <div class="flex items-center justify-between pb-2 border-b border-outline-variant/20">
                 <span class="text-sm font-bold text-on-surface flex items-center gap-1.5">
                   <span class="material-symbols-outlined text-secondary text-[20px]">tune</span>
                   What kind of Yatra are you planning?
                 </span>
-                <span class="text-[11px] text-on-surface-variant font-mono bg-surface-container px-2 py-0.5 rounded">
+                <span class="text-[11px] text-on-surface-variant font-mono bg-surface-container px-2.5 py-0.5 rounded">
                   Dynamic AI Curated
                 </span>
               </div>
 
-              <!-- Time Chips -->
-              <div class="flex flex-col gap-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Duration</span>
-                <div class="flex flex-wrap gap-2">
-                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">1 Hour</button>
-                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">2 Hours</button>
-                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">Half Day</button>
-                  <button onclick="YatraApp.switchView('planner')" class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Full Day</button>
+              <!-- Preferences Grid: 3 Responsive Columns -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Time Chips -->
+                <div class="flex flex-col gap-2">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Available Duration</span>
+                  <div class="flex flex-wrap gap-2">
+                    <button onclick="YatraApp.switchView('planner')" class="px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">1 Hour</button>
+                    <button onclick="YatraApp.switchView('planner')" class="px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">2 Hours</button>
+                    <button onclick="YatraApp.switchView('planner')" class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-primary text-white shadow-xs transition-all">Half Day</button>
+                    <button onclick="YatraApp.switchView('planner')" class="px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Full Day</button>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Budget Chips -->
-              <div class="flex flex-col gap-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Per-Person Budget</span>
-                <div class="flex flex-wrap gap-2">
-                  <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Free</button>
-                  <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹500</button>
-                  <button class="px-3 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm transition-all">₹1,000</button>
-                  <button class="px-3 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹2,500+</button>
+                <!-- Budget Chips -->
+                <div class="flex flex-col gap-2">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Per-Person Budget</span>
+                  <div class="flex flex-wrap gap-2">
+                    <button class="px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">Free</button>
+                    <button class="px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹500</button>
+                    <button class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-primary text-white shadow-xs transition-all">₹1,000</button>
+                    <button class="px-3 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container transition-all">₹2,500+</button>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Interests Chips -->
-              <div class="flex flex-col gap-1.5">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Interests & Mood</span>
-                <div class="flex flex-wrap gap-2">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
-                    <span>🏛️</span> History
-                  </span>
-                  <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container text-on-surface flex items-center gap-1">
-                    <span>🌿</span> Nature
-                  </span>
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
-                    <span>🍛</span> Food
-                  </span>
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-white shadow-sm flex items-center gap-1">
-                    <span>🎭</span> Culture
-                  </span>
-                  <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container-lowest text-on-surface flex items-center gap-1">
-                    <span>⚡</span> Adventure
-                  </span>
+                <!-- Interests Chips -->
+                <div class="flex flex-col gap-2">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Interests &amp; Mood</span>
+                  <div class="flex flex-wrap gap-2">
+                    <span class="px-2.5 py-1.5 rounded-full text-xs font-bold bg-primary text-white shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>🏛️</span> History
+                    </span>
+                    <span class="px-2.5 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container text-on-surface flex items-center gap-1 cursor-pointer">
+                      <span>🌿</span> Nature
+                    </span>
+                    <span class="px-2.5 py-1.5 rounded-full text-xs font-bold bg-primary text-white shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>🍛</span> Food
+                    </span>
+                    <span class="px-2.5 py-1.5 rounded-full text-xs font-bold bg-primary text-white shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>🎭</span> Culture
+                    </span>
+                    <span class="px-2.5 py-1.5 rounded-full text-xs font-medium bg-surface-container-lowest hover:bg-surface-container text-on-surface flex items-center gap-1 cursor-pointer">
+                      <span>⚡</span> Adventure
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -349,7 +352,7 @@
               <button 
                 id="hero-create-yatra-btn" 
                 type="button" 
-                class="mt-1 w-full h-12 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.99]"
+                class="mt-2 w-full h-12 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-[0.99] cursor-pointer"
               >
                 <span class="material-symbols-outlined text-[18px]">auto_awesome</span>
                 <span>Create My Yatra</span>
